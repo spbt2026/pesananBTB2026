@@ -420,7 +420,7 @@
                 <!-- Aliran Dipilih -->
                 <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl">
                     <span class="text-xs font-bold text-indigo-900 uppercase">Skop Pilihan Aliran:</span>
-                    <span id="resitAliran" class="px-3 py-1 bg-indigo-650 text-white text-xs font-bold rounded-full text-center"></span>
+                    <span id="resitAliran" class="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full text-center"></span>
                 </div>
 
                 <!-- Senarai Buku Dipesan dengan Kolum Penerimaan -->
@@ -747,7 +747,7 @@
             }
         }
 
-        // 1. PROSES SARINGAN EMEL DENGAN CARIAN CLOUD MASA-NYATA (OVERWRITE-SAFE)
+        // 1. PROSES SARINGAN EMEL DENGAN CARIAN CLOUD MASA-NYATA (100% KEBAL CORS DENGAN TEKNIK JSONP)
         function prosesSaringanEmel() {
             const inputEmel = document.getElementById('emelSaringan').value.trim().toLowerCase();
             
@@ -874,32 +874,52 @@
                 return;
             }
 
-            // QUERY REKOD TERUS DARIPADA GOOGLE SHEETS
-            // Menggunakan GET Request dengan format query string URL untuk mengelakkan ralat CORS "failed to fetch"
+            // ==========================================
+            // LOGIK UTAMA JSONP (100% BEBAS SEKATAN CORS)
+            // ==========================================
+            // Janakan nama callback unik
+            const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
             const queryUrl = `${SCRIPT_URL}?action=semak_emel&emel=${encodeURIComponent(emelSemasa)}`;
 
-            fetch(queryUrl, {
-                method: "GET",
-                mode: "cors"
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (res.found) {
+            // Sediakan sistem keselamatan pencetusan lambat (Timeout 15 saat)
+            const timeoutTimer = setTimeout(() => {
+                cleanupJSONP();
+                tunjukkanToast("Semakan talian awan mengambil masa terlalu lama. Membuka mod luar talian (local storage)...", "error");
+                let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
+                bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
+            }, 15000);
+
+            function cleanupJSONP() {
+                clearTimeout(timeoutTimer);
+                const scriptEl = document.getElementById(callbackName);
+                if (scriptEl) {
+                    document.body.removeChild(scriptEl);
+                }
+                delete window[callbackName];
+            }
+
+            // Isytiharkan callback function global untuk dipanggil oleh Google Apps Script
+            window[callbackName] = function(res) {
+                cleanupJSONP();
+                if (res && res.found) {
                     bukaBorang(res);
                 } else {
                     bukaBorang(null);
                 }
-            })
-            .catch(err => {
-                tunjukkanToast("Gagal menyemak rekod awan: " + err.message + ". Menggunakan mod simpanan lokal.", "error");
+            };
+
+            // Bina tag <script> secara dinamik untuk diletakkan ke dalam dokumen
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = `${queryUrl}&callback=${callbackName}`;
+            script.onerror = function() {
+                cleanupJSONP();
+                tunjukkanToast("Ralat pautan pangkalan data Google. Membuka mod luar talian (local storage)...", "error");
                 let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
                 bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
-            })
-            .finally(() => {
-                btnSaringan.disabled = false;
-                spinner.classList.add('hidden');
-                teksSaringan.classList.remove('opacity-40');
-            });
+            };
+
+            document.body.appendChild(script);
         }
 
         function tukarEmel() {
@@ -1270,7 +1290,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS DENGAN TINDAKAN POST 'no-cors' (MENCEGAH CORS BLOCK SEMASA MENULIS DATA)
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1338,15 +1358,17 @@
                 pesanan: flatPesananArray
             };
 
+            // Menggunakan mode: "no-cors" pada POST request menghalang pelayar web dari menyekat penghantaran borang
             fetch(SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'text/plain;charset=utf-8'
                 },
                 body: JSON.stringify(finalPayload)
             })
             .then(() => {
-                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar! Rekod lama telah diganti tulis & salinan e-mel telah dihantar.`, "success");
+                tunjukkanToast(`Pesanan ${statusMod} berjaya diproses! Rekod lama telah diganti tulis & salinan e-mel telah dihantar.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
             })
