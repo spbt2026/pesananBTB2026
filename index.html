@@ -16,12 +16,10 @@
 
         /* STYLES KHAS UNTUK CETAKAN (PRINT MODE) */
         @media print {
-            /* Sembunyikan semua elemen di luar modal pengesahan */
             body > *:not(#modalPengesahan) {
                 display: none !important;
             }
             
-            /* Sediakan modal pengesahan sebagai dokumen utama untuk dicetak */
             #modalPengesahan {
                 position: absolute !important;
                 left: 0 !important;
@@ -46,7 +44,6 @@
                 flex-direction: column !important;
             }
 
-            /* Sembunyikan header modal (Sahkan Maklumat) & footer modal (Butang hantar) semasa cetakan */
             #modalKandungan > div:first-child, 
             #modalKandungan > div:last-child {
                 display: none !important;
@@ -94,7 +91,7 @@
             
             <div class="max-w-xl mx-auto">
                 <p class="text-slate-600 text-sm mb-6 leading-relaxed">
-                    Sila masukkan alamat e-mel rasmi penyelaras SPBT sekolah anda. Sistem akan menentukan sama ada anda perlu membuat pesanan baharu atau mengemas kini rekod pesanan yang sedia ada.
+                    Sila masukkan alamat e-mel rasmi anda. Sistem akan menentukan sama ada anda perlu membuat pesanan baharu atau mengemas kini rekod pesanan yang sedia ada.
                 </p>
                 
                 <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
@@ -117,7 +114,7 @@
                     </div>
                 </div>
                 <p class="text-[11px] text-slate-400 mt-4 italic">
-                    *Peringatan: Sistem akan mengimbas lembaran Google Sheets di awan untuk menyedut profil dan pesanan anda dari mana-mana peranti!
+                    *Peringatan: Sistem akan mengimbas data pesanan untuk menyemak profil dan pesanan anda!
                 </p>
             </div>
         </section>
@@ -290,7 +287,7 @@
                             <i class="fa-solid fa-universal-access text-4xl"></i>
                         </div>
                         <h3 class="text-xl font-bold text-slate-900 mb-2">2. Pesan Buku Teks Pendidikan Khas</h3>
-                        <p class="text-slate-500 text-sm max-w-sm">Aliran pendidikan khas adaptasi khusus merangkumi masalah pendengaran, penglihatan, pembelajaran, dan Braille.</p>
+                        <p class="text-slate-500 text-sm max-w-sm">Aliran pendidikan khas adaptasi khusus merangkumi masalah pendengaran, penglihatan, pembelajaran, and Braille.</p>
                         
                         <span id="badgeKhasQty" class="hidden mt-3 px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full"></span>
 
@@ -423,7 +420,7 @@
                 <!-- Aliran Dipilih -->
                 <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl">
                     <span class="text-xs font-bold text-indigo-900 uppercase">Skop Pilihan Aliran:</span>
-                    <span id="resitAliran" class="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full text-center"></span>
+                    <span id="resitAliran" class="px-3 py-1 bg-indigo-650 text-white text-xs font-bold rounded-full text-center"></span>
                 </div>
 
                 <!-- Senarai Buku Dipesan dengan Kolum Penerimaan -->
@@ -878,15 +875,12 @@
             }
 
             // QUERY REKOD TERUS DARIPADA GOOGLE SHEETS
-            fetch(SCRIPT_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8" // Mencegah isu CORS pre-flight
-                },
-                body: JSON.stringify({
-                    action: "semak_emel",
-                    emel: emelSemasa
-                })
+            // Menggunakan GET Request dengan format query string URL untuk mengelakkan ralat CORS "failed to fetch"
+            const queryUrl = `${SCRIPT_URL}?action=semak_emel&emel=${encodeURIComponent(emelSemasa)}`;
+
+            fetch(queryUrl, {
+                method: "GET",
+                mode: "cors"
             })
             .then(res => res.json())
             .then(res => {
@@ -898,7 +892,6 @@
             })
             .catch(err => {
                 tunjukkanToast("Gagal menyemak rekod awan: " + err.message + ". Menggunakan mod simpanan lokal.", "error");
-                // Fallback ke localStorage sekiranya berlaku masalah talian internet
                 let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
                 bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
             })
@@ -1277,7 +1270,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS DENGAN TINDAKAN 'hantar_pesanan'
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
