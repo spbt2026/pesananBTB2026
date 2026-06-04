@@ -13,6 +13,51 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
+
+        /* STYLES KHAS UNTUK CETAKAN (PRINT MODE) */
+        @media print {
+            /* Sembunyikan semua elemen di luar modal pengesahan */
+            body > *:not(#modalPengesahan) {
+                display: none !important;
+            }
+            
+            /* Sediakan modal pengesahan sebagai dokumen utama untuk dicetak */
+            #modalPengesahan {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: none !important;
+                backdrop-filter: none !important;
+                display: block !important;
+            }
+
+            #modalKandungan {
+                box-shadow: none !important;
+                border: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                width: 100% !important;
+                transform: none !important;
+                opacity: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            /* Sembunyikan header modal (Sahkan Maklumat) & footer modal (Butang hantar) semasa cetakan */
+            #modalKandungan > div:first-child, 
+            #modalKandungan > div:last-child {
+                display: none !important;
+            }
+
+            #printArea {
+                overflow: visible !important;
+                max-height: none !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen text-slate-800">
@@ -1127,7 +1172,11 @@
             document.getElementById('resitNamaSekolah').innerText = nama.toUpperCase();
             document.getElementById('resitKodSekolah').innerText = `KOD: ${kod.toUpperCase()}`;
             document.getElementById('resitKategoriSekolah').innerText = kat;
-            document.getElementById('resitLokasi').innerText = `${daerah.toUpperCase()}, ${negeri.toUpperCase()}`;
+            document.getElementById('resitLocations').innerText = `${daerah.toUpperCase()}, ${negeri.toUpperCase()}`;
+            // Sediakan ID tersendiri untuk mengelakkan ralat variable
+            const resitLoc = document.getElementById('resitLokasi');
+            if (resitLoc) resitLoc.innerText = `${daerah.toUpperCase()}, ${negeri.toUpperCase()}`;
+            
             document.getElementById('resitPenyelaras').innerText = penyelaras.toUpperCase();
             document.getElementById('resitPenyelarasCop').innerText = penyelaras.toUpperCase();
             document.getElementById('resitNoTelefon').innerText = noTelefon;
@@ -1166,7 +1215,6 @@
                             <span class="text-[10px] font-bold uppercase px-2 py-1 rounded ${warnaFormat}">${buku.aliran_kategori}</span>
                         </td>
                         <td class="py-2.5 px-3 text-center font-extrabold text-slate-800 text-sm">${kuantiti}</td>
-                        <!-- Kolum fizikal kosong untuk cetakan -->
                         <td class="py-2.5 px-3 text-center border-l border-r border-slate-150 text-slate-300 font-mono bg-amber-50/20">[ &nbsp; &nbsp; &nbsp; ]</td>
                         <td class="py-2.5 px-3 text-center text-slate-300 font-mono bg-amber-50/20">[ &nbsp; &nbsp; / &nbsp; &nbsp; / &nbsp; &nbsp; ]</td>
                     `;
@@ -1193,11 +1241,14 @@
             }, 300);
         }
 
+        // FUNGSI CETAKAN YANG TELAH DIPERBAIKI (STATIK & KEKAL DI HALAMAN SEMASA)
         function cetakResit() {
+            // Memanggil dialog cetakan sistem secara terus.
+            // CSS @media print di bahagian kepala dokumen akan menyaring paparan secara automatik.
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS & EMEL
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1218,10 +1269,11 @@
                 pesanan: troliPesanan
             };
 
+            // GANTI TULIS (OVERWRITE) REKOD DALAM LOCALSTORAGE SECARA TEMPATAN
             localStorage.setItem(`spbt_order_${emelSemasa}`, JSON.stringify(dataPesanan));
 
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
-                tunjukkanToast(`[MOD DEMO] Pesanan disimpan secara lokal! Salinan e-mel rasmi akan dihantar sebaik sahaja SCRIPT_URL dipautkan.`, "success");
+                tunjukkanToast(`[MOD DEMO] Pesanan ${statusMod} disimpan secara lokal bagi emel ${emelSemasa}! Rekod lama telah diganti tulis.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
                 return;
@@ -1273,7 +1325,7 @@
                 body: JSON.stringify(finalPayload)
             })
             .then(() => {
-                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar ke Google Sheets & Salinan E-mel telah dihantar!`, "success");
+                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar! Rekod lama telah diganti tulis & salinan e-mel telah dihantar.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
             })
@@ -1288,5 +1340,7 @@
             });
         }
     </script>
+    <!-- Elemen tersembunyi bagi mengelakkan ralat id lokasi -->
+    <span id="resitLocations" class="hidden"></span>
 </body>
 </html>
