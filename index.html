@@ -88,7 +88,7 @@
         <!-- LANGKAH 1: SARINGAN EMEL PENYELARAS -->
         <section id="kawasanLangkah0" class="bg-white rounded-2xl shadow-md border border-slate-100 p-6 sm:p-8 mb-8 transition-all duration-500 text-center">
             <div class="flex items-center justify-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm">1</span>
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm" id="langkah0IkonBulat">1</span>
                 <h2 class="text-lg font-bold text-slate-900">Pendaftaran & Semakan E-mel Pengguna</h2>
             </div>
             
@@ -109,14 +109,15 @@
                         </div>
                     </div>
                     <div class="pt-6 sm:pt-0">
-                        <button type="button" onclick="prosesSaringanEmel()" 
-                            class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer">
-                            Seterusnya <i class="fa-solid fa-arrow-right-long"></i>
+                        <button type="button" id="btnHantarSaringan" onclick="prosesSaringanEmel()" 
+                            class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer min-w-[140px]">
+                            <span id="spinnerSaringan" class="hidden animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                            <span id="teksSaringan">Seterusnya <i class="fa-solid fa-arrow-right-long"></i></span>
                         </button>
                     </div>
                 </div>
                 <p class="text-[11px] text-slate-400 mt-4 italic">
-                    *Tip Ujian: Gunakan e-mel <strong class="text-indigo-600">cikgu.zahid@moe.edu.my</strong> untuk menguji mod kemaskini pesanan sedia ada.
+                    *Peringatan: Sistem akan mengimbas lembaran Google Sheets di awan untuk menyedut profil dan pesanan anda dari mana-mana peranti!
                 </p>
             </div>
         </section>
@@ -497,7 +498,7 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Sila masukkan URL Web App Google Apps Script anda yang diperoleh dari menu Deploy.
+        // SCRIPT_URL: Sila pastikan pautan Apps Script Aplikasi Web anda dimasukkan di sini.
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxEb-d30G2829hYybXAbqHpgC8_0qyRGWbmzWPEHBTyTv8zszkyq6BQ1qzoojrJ5BK1Uw/exec"; 
 
         // PANGKALAN DATA JUDUL BUKU TEKS TERBITAN BAHARU TAHUN 1 (ALIRAN PERDANA) - TIADA HARGA
@@ -614,7 +615,7 @@
         };
 
         // PANGKALAN DATA JUDUL BUKU TEKS PENDIDIKAN KHAS (STANDARD) - TIADA HARGA
-        // Kategori SABK dan SRA telah dikosongkan sepenuhnya mengikut arahan
+        // Kategori SABK dan SRA adalah kosong mengikut arahan terdahulu
         const databaseBukuKhasStandard = {
             "SEKOLAH KEBANGSAAN (SK)": [
                 { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
@@ -693,14 +694,14 @@
             { kod: "BTK081004", tajuk: "MATEMATIK TAHUN 1 (BUKU TEKS BRAILLE)" },
             { kod: "BTK721004", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BUKU TEKS BRAILLE)" },
             { kod: "BTK101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK141003", tajuk: "PENDIDIZAN JASMANI TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { kod: "BTK141003", tajuk: "PENDIDIKAN JASMANI TAHUN 1 (BUKU TEKS BRAILLE)" },
             { kod: "BTK111004", tajuk: "PENDIDIKAN MORAL TAHUN 1 (BUKU TEKS BRAILLE)" },
             { kod: "BTK701003", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BUKU TEKS BRAILLE)" },
             { kod: "BTK481103", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1 (BUKU TEKS BRAILLE)" }
         ];
 
-        // REKOD SIMULASI PENYELARAS SEDIA ADA
-        const databasePenggunaSediaAda = {
+        // REKOD SIMULASI JIKA OFFLINE / TIADA SCRIPT_URL
+        const databasePenggunaSediaAdaLocalMock = {
             "cikgu.zahid@moe.edu.my": {
                 id_pesanan: "SPBT-991204",
                 kod_sekolah: "WBA0143",
@@ -710,8 +711,6 @@
                 kategori_sekolah: "SEKOLAH KEBANGSAAN (SK)",
                 penyelaras: "ZAHID BIN IBRAHIM",
                 no_telefon: "0198822334",
-                aliran_utama: "perdana",
-                aliran_kategori: "Arus Perdana",
                 pesanan: {
                     "BA061001": 150,
                     "BT061001": 150,
@@ -719,20 +718,6 @@
                 }
             }
         };
-
-        // EVENT LISTENERS UNTUK PEMFORMATAN HURUF BESAR AUTOMATIK
-        document.getElementById('kodSekolah').addEventListener('input', function() {
-            this.value = this.value.toUpperCase().replace(/-/g, '');
-        });
-        document.getElementById('namaSekolah').addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-        });
-        document.getElementById('daerah').addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-        });
-        document.getElementById('penyelaras').addEventListener('input', function() {
-            this.value = this.value.toUpperCase();
-        });
 
         let emelSemasa = "";
         let isKemaskiniMode = false;
@@ -765,7 +750,7 @@
             }
         }
 
-        // 0. PROSES SARINGAN EMEL
+        // 1. PROSES SARINGAN EMEL DENGAN CARIAN CLOUD MASA-NYATA (OVERWRITE-SAFE)
         function prosesSaringanEmel() {
             const inputEmel = document.getElementById('emelSaringan').value.trim().toLowerCase();
             
@@ -774,88 +759,154 @@
                 return;
             }
 
+            const btnSaringan = document.getElementById('btnHantarSaringan');
+            const spinner = document.getElementById('spinnerSaringan');
+            const teksSaringan = document.getElementById('teksSaringan');
+
+            // Aktifkan Loading Spinner
+            btnSaringan.disabled = true;
+            spinner.classList.remove('hidden');
+            teksSaringan.classList.add('opacity-40');
+
             emelSemasa = inputEmel;
-            
-            let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
-            let rekodDitemui = null;
 
-            if (rekodTempatan) {
-                rekodDitemui = JSON.parse(rekodTempatan);
-            } else if (databasePenggunaSediaAda[emelSemasa]) {
-                rekodDitemui = databasePenggunaSediaAda[emelSemasa];
-            }
+            // FUNGSI MEMULAKAN BORANG (BAHARU ATAU KEMASKINI)
+            function bukaBorang(rekodDitemui) {
+                const lencana = document.getElementById('lencanaModBorang');
+                const tajukLec = document.getElementById('tajukLencana');
+                const subLec = document.getElementById('subLencana');
+                const ikonLec = document.getElementById('ikonLencana');
 
-            const lencana = document.getElementById('lencanaModBorang');
-            const tajukLec = document.getElementById('tajukLencana');
-            const subLec = document.getElementById('subLencana');
-            const ikonLec = document.getElementById('ikonLencana');
+                if (rekodDitemui) {
+                    // MOD KEMASKINI PESANAN
+                    isKemaskiniMode = true;
+                    idPesananSemasa = rekodDitemui.id_pesanan;
+                    
+                    document.getElementById('kodSekolah').value = rekodDitemui.kod_sekolah;
+                    document.getElementById('namaSekolah').value = rekodDitemui.nama_sekolah;
+                    document.getElementById('negeri').value = rekodDitemui.negeri;
+                    document.getElementById('daerah').value = rekodDitemui.daerah;
+                    document.getElementById('kategoriSekolah').value = rekodDitemui.kategori_sekolah;
+                    document.getElementById('penyelaras').value = rekodDitemui.penyelaras;
+                    document.getElementById('noTelefon').value = rekodDitemui.no_telefon;
 
-            if (rekodDitemui) {
-                isKemaskiniMode = true;
-                idPesananSemasa = rekodDitemui.id_pesanan;
-                
-                document.getElementById('kodSekolah').value = rekodDitemui.kod_sekolah;
-                document.getElementById('namaSekolah').value = rekodDitemui.nama_sekolah;
-                document.getElementById('negeri').value = rekodDitemui.negeri;
-                document.getElementById('daerah').value = rekodDitemui.daerah;
-                document.getElementById('kategoriSekolah').value = rekodDitemui.kategori_sekolah;
-                document.getElementById('penyelaras').value = rekodDitemui.penyelaras;
-                document.getElementById('noTelefon').value = rekodDitemui.no_telefon;
+                    // Pulihkan troli dari pangkalan data awan
+                    troliPesanan = rekodDitemui.pesanan || {};
 
-                troliPesanan = rekodDitemui.pesanan || {};
+                    lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-amber-50 border border-amber-200 text-amber-800";
+                    tajukLec.innerText = "MOD KEMASKINI PESANAN (AWAN)";
+                    subLec.innerText = `Menyunting pesanan rasmi sedia ada (ID Pesanan: ${idPesananSemasa})`;
+                    ikonLec.className = "p-2 rounded-lg bg-amber-600 text-white text-base fa-solid fa-pen-to-square";
 
-                lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-amber-50 border border-amber-200 text-amber-800";
-                tajukLec.innerText = "MOD KEMASKINI PESANAN (REKOD DIJUMPAI)";
-                subLec.innerText = `Menyunting pesanan sedia ada (ID Pesanan: ${idPesananSemasa})`;
-                ikonLec.className = "p-2 rounded-lg bg-amber-600 text-white text-base fa-solid fa-pen-to-square";
-
-                tunjukkanToast("Rekod pesanan sedia ada ditemui! Maklumat anda telah diisi.", "success");
-                
-                if (rekodDitemui.aliran_utama) {
-                    isFormatBraille = (rekodDitemui.aliran_kategori === 'BRAILLE' || rekodDitemui.mempunyai_braille === true);
+                    tunjukkanToast("Sedia! Rekod pesanan anda telah ditarik keluar daripada Google Sheets.", "success");
+                    
+                    // Kesan jika ada buku braille diisi
+                    isFormatBraille = Object.keys(troliPesanan).some(kod => kod.startsWith("BTK") && databaseBukuKhasBraille.some(b => b.kod === kod));
                     document.getElementById('toggleBraille').checked = isFormatBraille;
-                    selectAliran(rekodDitemui.aliran_utama);
+                    
+                    // Pulihkan pilihan aliran secara visual jika ada rekod
+                    let adaPerdana = Object.keys(troliPesanan).some(kod => !kod.startsWith("BAK") && !kod.startsWith("BTK") && !kod.startsWith("DTK") && !kod.startsWith("DAK") && !kod.startsWith("ETK") && !kod.startsWith("EAK"));
+                    let adaKhas = Object.keys(troliPesanan).some(kod => kod.startsWith("BAK") || kod.startsWith("BTK") || kod.startsWith("DTK") || kod.startsWith("DAK") || kod.startsWith("ETK") || kod.startsWith("EAK"));
+                    
+                    if (adaPerdana) {
+                        selectAliran('perdana');
+                    } else if (adaKhas) {
+                        selectAliran('khas');
+                    }
+                } else {
+                    // MOD PESANAN BAHARU
+                    isKemaskiniMode = false;
+                    idPesananSemasa = "";
+                    troliPesanan = {};
+                    isFormatBraille = false;
+                    document.getElementById('toggleBraille').checked = false;
+                    
+                    document.getElementById('kodSekolah').value = "";
+                    document.getElementById('namaSekolah').value = "";
+                    document.getElementById('negeri').value = "";
+                    document.getElementById('daerah').value = "";
+                    document.getElementById('kategoriSekolah').value = "";
+                    document.getElementById('penyelaras').value = "";
+                    document.getElementById('noTelefon').value = "";
+
+                    lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-green-50 border border-green-200 text-green-800";
+                    tajukLec.innerText = "MOD PESANAN BAHARU";
+                    subLec.innerText = "Sila isi profil sekolah dan pilih aliran buku teks di bawah.";
+                    ikonLec.className = "p-2 rounded-lg bg-green-600 text-white text-base fa-solid fa-circle-plus";
+
+                    tunjukkanToast("E-mel penyelaras sedia untuk digunakan bagi pesanan baharu.", "info");
+                    
+                    document.getElementById('katalogKawasan').classList.add('hidden');
+                    document.getElementById('btnAliranPerdana').classList.remove('border-blue-500', 'bg-blue-50/20');
+                    document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
                 }
-            } else {
-                isKemaskiniMode = false;
-                idPesananSemasa = "";
-                troliPesanan = {};
-                isFormatBraille = false;
-                document.getElementById('toggleBraille').checked = false;
-                
-                document.getElementById('kodSekolah').value = "";
-                document.getElementById('namaSekolah').value = "";
-                document.getElementById('negeri').value = "";
-                document.getElementById('daerah').value = "";
-                document.getElementById('kategoriSekolah').value = "";
-                document.getElementById('penyelaras').value = "";
-                document.getElementById('noTelefon').value = "";
 
-                lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-green-50 border border-green-200 text-green-800";
-                tajukLec.innerText = "MOD PESANAN BAHARU";
-                subLec.innerText = "Sila isi profil sekolah dan pilih aliran buku teks di bawah.";
-                ikonLec.className = "p-2 rounded-lg bg-green-600 text-white text-base fa-solid fa-circle-plus";
+                document.getElementById('teksEmelAktif').innerHTML = `<i class="fa-solid fa-user-check"></i> Penyelaras: <strong>${emelSemasa}</strong>`;
 
-                tunjukkanToast("E-mel baharu dikesan. Anda boleh memulakan pengisian baharu.", "info");
+                const borangUtama = document.getElementById('kawasanBorangUtama');
+                borangUtama.classList.remove('hidden');
+                setTimeout(() => {
+                    borangUtama.classList.remove('opacity-0');
+                }, 50);
+
+                const l0 = document.getElementById('kawasanLangkah0');
+                l0.classList.add('opacity-40');
+                document.getElementById('emelSaringan').disabled = true;
                 
-                document.getElementById('katalogKawasan').classList.add('hidden');
-                document.getElementById('btnAliranPerdana').classList.remove('border-blue-500', 'bg-blue-50/20');
-                document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
+                // Matikan Loading Spinner
+                btnSaringan.disabled = false;
+                spinner.classList.add('hidden');
+                teksSaringan.classList.remove('opacity-40');
+                
+                kemaskiniTroliRingkasan();
             }
 
-            document.getElementById('teksEmelAktif').innerHTML = `<i class="fa-solid fa-user-check"></i> Penyelaras: <strong>${emelSemasa}</strong>`;
+            // Jika tiada SCRIPT_URL dipautkan, sistem menggunakan local simulation fallback
+            if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
+                setTimeout(() => {
+                    let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
+                    let rekodDitemui = null;
 
-            const borangUtama = document.getElementById('kawasanBorangUtama');
-            borangUtama.classList.remove('hidden');
-            setTimeout(() => {
-                borangUtama.classList.remove('opacity-0');
-            }, 50);
+                    if (rekodTempatan) {
+                        rekodDitemui = JSON.parse(rekodTempatan);
+                    } else if (databasePenggunaSediaAdaLocalMock[emelSemasa]) {
+                        rekodDitemui = databasePenggunaSediaAdaLocalMock[emelSemasa];
+                    }
+                    bukaBorang(rekodDitemui);
+                }, 800);
+                return;
+            }
 
-            const l0 = document.getElementById('kawasanLangkah0');
-            l0.classList.add('opacity-40');
-            document.getElementById('emelSaringan').disabled = true;
-            
-            kemaskiniTroliRingkasan();
+            // QUERY REKOD TERUS DARIPADA GOOGLE SHEETS
+            fetch(SCRIPT_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8" // Mencegah isu CORS pre-flight
+                },
+                body: JSON.stringify({
+                    action: "semak_emel",
+                    emel: emelSemasa
+                })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.found) {
+                    bukaBorang(res);
+                } else {
+                    bukaBorang(null);
+                }
+            })
+            .catch(err => {
+                tunjukkanToast("Gagal menyemak rekod awan: " + err.message + ". Menggunakan mod simpanan lokal.", "error");
+                // Fallback ke localStorage sekiranya berlaku masalah talian internet
+                let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
+                bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
+            })
+            .finally(() => {
+                btnSaringan.disabled = false;
+                spinner.classList.add('hidden');
+                teksSaringan.classList.remove('opacity-40');
+            });
         }
 
         function tukarEmel() {
@@ -1226,7 +1277,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS DENGAN TINDAKAN 'hantar_pesanan'
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1280,6 +1331,7 @@
             }
 
             const finalPayload = {
+                action: "hantar_pesanan",
                 id_pesanan: generatedId,
                 status_pesanan: statusMod,
                 emel: emelSemasa,
@@ -1295,9 +1347,8 @@
 
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'text/plain;charset=utf-8'
                 },
                 body: JSON.stringify(finalPayload)
             })
@@ -1317,7 +1368,6 @@
             });
         }
     </script>
-    <!-- Elemen tersembunyi bagi mengelakkan ralat id lokasi -->
     <span id="resitLocations" class="hidden"></span>
 </body>
 </html>
