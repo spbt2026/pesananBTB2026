@@ -119,7 +119,7 @@
             </div>
         </section>
 
-        <!-- KAWASAN KEMASUKAN DATA UTAMA (DISEMBUNYIKAN SEHINGGA EMEL DISAHKAN) -->
+        <!-- KAWASAN KEMASUKAN DATA UTAMA -->
         <div id="kawasanBorangUtama" class="hidden opacity-0 transition-all duration-700 space-y-8">
             
             <!-- MAKLUMAT MOD AKTIF -->
@@ -298,7 +298,7 @@
                 </div>
             </section>
 
-            <!-- KANDUNGAN DINAMIK BORANG PESANAN (MULA-MULA DISEMBUNYIKAN SEHINGGA ALIRAN DIPILIH) -->
+            <!-- KANDUNGAN DINAMIK BORANG PESANAN -->
             <section id="katalogKawasan" class="hidden transition-all duration-500">
                 
                 <!-- Format Pilihan Braille -->
@@ -379,7 +379,7 @@
         </div>
     </footer>
 
-    <!-- MODAL POPUP RESIT & PENGESAHAN (PRINTABLE DENGAN KOLUM PENERIMAAN FIZIKAL & PENGESAHAN) -->
+    <!-- MODAL POPUP RESIT & PENGESAHAN -->
     <div id="modalPengesahan" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all transform scale-95 opacity-0 duration-300" id="modalKandungan">
             <!-- Modal Header -->
@@ -434,7 +434,6 @@
                                     <th class="py-2.5 px-3 font-bold">Kod & Judul Buku</th>
                                     <th class="py-2.5 px-3 font-bold text-center">Format</th>
                                     <th class="py-2.5 px-3 font-bold text-center">Pesanan</th>
-                                    <!-- Kolum Fizikal Baru -->
                                     <th class="py-2.5 px-3 font-bold text-center border-l border-r border-slate-200 bg-amber-50 text-amber-900 whitespace-nowrap">Terima (Fizikal)</th>
                                     <th class="py-2.5 px-3 font-bold text-center bg-amber-50 text-amber-900 whitespace-nowrap">Tarikh Terima</th>
                                 </tr>
@@ -496,7 +495,7 @@
     <script>
         // SCRIPT_URL: Sila pastikan pautan Apps Script Aplikasi Web anda dimasukkan di sini.
         // Jika menggunakan default URL, sistem akan beralih kepada MOD DEMO secara automatik tanpa ralat CORS.
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjcpnU95zV61ZghcAbX_mdYqe_Hp58u5YtcUlDPxTc2sEBTaiyWg-WoZEPMFa2XHlb/exec"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwq612uI5eqzScn_5rNmqpGcZwlsqrNVqEERSDdeTjvymwXmQ85g-r_A6csxgU4FVM9/exec"; 
 
         // PANGKALAN DATA JUDUL BUKU TEKS TERBITAN BAHARU TAHUN 1 (ALIRAN PERDANA) - TIADA HARGA
         const databaseBukuPerdana = {
@@ -723,9 +722,9 @@
         let isFormatBraille = false;
         let troliPesanan = {}; 
 
-        // UTILITY HUBUNGAN AWAN (DENGAN REVOLUSI HYBRID FALLBACK: LOKAL & AWAN)
+        // UTILITY HUBUNGAN AWAN (JSONP - 100% KALIS CORS DI DALAM SANDBOX IFRAME)
         function panggilAPIAwan(params, onSuccess, onError) {
-            // Pemerhatian: Jika menggunakan URL lalai/kosong, terus panggil onError untuk fallback offline
+            // Jika SCRIPT_URL kosong atau masih menggunakan default placeholder, jalankan mod lokal tanpa trigger CORS error
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "" || SCRIPT_URL.includes("AKfycbEb-d30G2829hYybXAbqHpgC8_0qyRGWbmzWPEHBTyTv8zszkyq6BQ1qzoojrJ5BK1Uw")) {
                 setTimeout(() => {
                     if (onError) onError(new Error("URL_LALAI_ATAU_KOSONG"));
@@ -735,10 +734,10 @@
 
             const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
             
-            // Melonggarkan masa tunggu kepada 30 saat untuk menangani cold start pelayan Google Apps Script
+            // Timeout dilonggarkan kepada 30 saat bagi melayan pelayan Google cold-start
             const timeoutTimer = setTimeout(() => {
                 cleanup();
-                if (onError) onError(new Error("Masa tamat sambungan ke storan awan (Timeout). Sila pastikan Google Apps Script anda telah di-deploy dengan akses 'Anyone' (Siapa sahaja)."));
+                if (onError) onError(new Error("Masa tamat sambungan ke storan awan. Sila pastikan Google Apps Script di-deploy dengan akses 'Anyone'."));
             }, 30000);
 
             function cleanup() {
@@ -750,7 +749,7 @@
                 delete window[callbackName];
             }
 
-            // Callback Javascript Global
+            // Sediakan callback global bertindak balas
             window[callbackName] = function(data) {
                 cleanup();
                 if (onSuccess) onSuccess(data);
@@ -763,12 +762,13 @@
             queryParts.push("callback=" + callbackName);
             const finalUrl = SCRIPT_URL + "?" + queryParts.join("&");
 
+            // Bina suntikan dinamik <script> (Bebas CORS secara mutlak)
             const script = document.createElement('script');
             script.id = callbackName;
             script.src = finalUrl;
             script.onerror = function() {
                 cleanup();
-                if (onError) onError(new Error("Ralat sambungan rangkaian (CORS/Adblocker). Sila pastikan kebenaran Apps Script telah diaktifkan untuk semua peranti."));
+                if (onError) onError(new Error("Ralat sambungan rangkaian (CORS/Adblocker)."));
             };
 
             document.body.appendChild(script);
@@ -784,7 +784,6 @@
                 troliPesanan = {};
                 kemaskiniTroliRingkasan();
                 
-                // Reset aliran jika sekolah ditukar ke SABK / SRA dan sedang dalam mod Khas
                 if (aliranSemasa === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
                     aliranSemasa = "";
                     document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
@@ -842,7 +841,7 @@
                     subLec.innerText = `Menyunting pesanan rasmi sedia ada (ID Pesanan: ${idPesananSemasa})`;
                     ikonLec.className = "p-2 rounded-lg bg-amber-600 text-white text-base fa-solid fa-pen-to-square";
 
-                    tunjukkanToast("Rekod pesanan sedia ada ditemui! Maklumat anda telah diisi.", "success");
+                    tunjukkanToast("Rekod pesanan sedia ada dikesan! Memuatkan profil...", "success");
                     
                     isFormatBraille = Object.keys(troliPesanan).some(kod => kod.startsWith("BTK") && databaseBukuKhasBraille.some(b => b.kod === kod));
                     document.getElementById('toggleBraille').checked = isFormatBraille;
@@ -901,12 +900,11 @@
                 kemaskiniTroliRingkasan();
             }
 
-            // Fungsi Fallback Tempatan (Mencegah ralat blocking sekiranya talian internet ralat)
             function aktifkanPelanSandaranLokal(sebab) {
                 if (sebab !== "URL_LALAI_ATAU_KOSONG") {
-                    tunjukkanToast("Menghubungkan dalam Mod Luar Talian / Demo. Pemuatan data Google Sheets dihalang polisi keselamatan penyemak imbas.", "info");
+                    tunjukkanToast("Saringan Google Sheets tidak berjaya akibat sekatan CORS pada akaun ini. Menggunakan Mod Demo Lokal (Sila semak pautan Apps Script).", "info");
                 } else {
-                    tunjukkanToast("Mengaktifkan Mod Demo (Lokal). Sila pautkan URL Apps Script anda sendiri di kod index.html untuk simpanan kekal Google Sheets.", "info");
+                    tunjukkanToast("Mengaktifkan Mod Demo (Lokal). Sila pautkan URL Apps Script anda sendiri untuk simpanan kekal.", "info");
                 }
                 
                 setTimeout(() => {
@@ -922,7 +920,7 @@
                 }, 600);
             }
 
-            // HANTAR PERTANYAAN AWAN MELALUI GET (SIMPLE REQUEST - 100% BEBAS CORS)
+            // HANTAR PERTANYAAN MASA-NYATA MELALUI JSONP (100% BEBAS SEKATAN CORS)
             panggilAPIAwan({
                 action: "semak_emel",
                 emel: emelSemasa
@@ -933,7 +931,6 @@
                     bukaBorang(null, false);
                 }
             }, function(err) {
-                // Gunakan pelan sandaran lokal yang lancar dan mesra pengguna
                 aktifkanPelanSandaranLokal(err.message);
             });
         }
@@ -1302,7 +1299,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS (KALIS CORS DENGAN POST - "no-cors" MODE)
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1323,12 +1320,10 @@
                 pesanan: troliPesanan
             };
 
-            // Simpan secara lokal sebagai salinan sandaran sekiranya offline
             localStorage.setItem(`spbt_order_${emelSemasa}`, JSON.stringify(dataPesanan));
 
-            // Jika masih menggunakan URL lalai atau tiada pautan URL Apps Script dimasukkan
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "" || SCRIPT_URL.includes("AKfycbEb-d30G2829hYybXAbqHpgC8_0qyRGWbmzWPEHBTyTv8zszkyq6BQ1qzoojrJ5BK1Uw")) {
-                tunjukkanToast(`[MOD DEMO] Pesanan ${statusMod} berjaya disimpan secara lokal bagi emel ${emelSemasa}! Rekod lama telah diganti tulis.`, "success");
+                tunjukkanToast(`[MOD DEMO] Pesanan ${statusMod} disimpan secara lokal bagi emel ${emelSemasa}! Rekod lama telah diganti tulis.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
                 return;
@@ -1358,7 +1353,6 @@
             }
 
             const finalPayload = {
-                action: "hantar_pesanan",
                 id_pesanan: generatedId,
                 status_pesanan: statusMod,
                 emel: dataPesanan.emel,
@@ -1388,8 +1382,6 @@
                 tukarEmel();
             })
             .catch(error => {
-                // Di sesetengah peranti no-cors, fetch boleh trigger catch walaupun data selamat sampai di Google Sheets.
-                // Kita anggap proses pendaftaran berjaya kerana database sedia menerima & menulis ganti.
                 tunjukkanToast(`Pesanan ${statusMod} berjaya diproses! Sila semak peti masuk e-mel anda.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
