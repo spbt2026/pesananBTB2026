@@ -89,8 +89,8 @@
                 <h2 class="text-lg font-bold text-slate-900">Pendaftaran & Semakan E-mel Pengguna</h2>
             </div>
             
-            <div class="max-w-xl mx-auto">
-                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+            <div class="max-w-xl mx-auto text-center">
+                <p class="text-slate-600 text-sm mb-6 leading-relaxed mx-auto">
                     Sila masukkan alamat e-mel rasmi anda. Sistem akan menentukan sama ada anda perlu membuat pesanan baharu atau mengemas kini rekod pesanan yang sedia ada.
                 </p>
                 
@@ -113,7 +113,7 @@
                         </button>
                     </div>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-4 italic">
+                <p class="text-[11px] text-slate-400 mt-4 italic mx-auto">
                     *Peringatan: Sistem akan mengimbas data pesanan untuk menyemak profil dan pesanan anda!
                 </p>
             </div>
@@ -393,7 +393,7 @@
                 </button>
             </div>
             
-            <!-- Modal Body (Printable Receipt Area) -->
+            <!-- Modal Body -->
             <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="printArea">
                 <div class="text-center border-b border-slate-100 pb-4">
                     <h4 class="text-base font-extrabold text-slate-900">RESIT RUMUSAN PESANAN BUKU TEKS TERBITAN BAHARU</h4>
@@ -446,7 +446,6 @@
                                 <tr class="bg-slate-100 font-bold text-slate-900 border-t border-slate-200">
                                     <td colspan="2" class="py-3 px-3 text-right">Jumlah Naskhah Keseluruhan:</td>
                                     <td id="resitJumlahKuantiti" class="py-3 px-3 text-center text-blue-700 text-sm font-extrabold"></td>
-                                    <!-- Ruangan kosong tamat dalam cetakan -->
                                     <td colspan="2" class="bg-slate-50 border-l border-slate-200"></td>
                                 </tr>
                             </tfoot>
@@ -612,7 +611,6 @@
         };
 
         // PANGKALAN DATA JUDUL BUKU TEKS PENDIDIKAN KHAS (STANDARD) - TIADA HARGA
-        // Kategori SABK dan SRA adalah kosong mengikut arahan terdahulu
         const databaseBukuKhasStandard = {
             "SEKOLAH KEBANGSAAN (SK)": [
                 { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
@@ -723,6 +721,55 @@
         let isFormatBraille = false;
         let troliPesanan = {}; 
 
+        // UTILITY HUBUNGAN AWAN JSONP (MENGHAPUSKAN CORS SECARA 100% UNTUK SEMUA PERANTI)
+        function panggilAPIJsonp(params, onSuccess, onError) {
+            const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
+            
+            // Bina query string
+            let queryParts = [];
+            for (let key in params) {
+                queryParts.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
+            }
+            queryParts.push("callback=" + callbackName);
+            const url = SCRIPT_URL + "?" + queryParts.join("&");
+
+            // Sediakan had masa tindak balas (Timeout 20 saat)
+            const timeoutTimer = setTimeout(() => {
+                cleanup();
+                if (onError) onError(new Error("Masa tamat sambungan ke pangkalan data Google Sheets (Timeout). Sila cuba sebentar lagi."));
+            }, 20000);
+
+            function cleanup() {
+                clearTimeout(timeoutTimer);
+                const scriptEl = document.getElementById(callbackName);
+                if (scriptEl) {
+                    document.body.removeChild(scriptEl);
+                }
+                delete window[callbackName];
+            }
+
+            // Daftarkan callback ke skop window global
+            window[callbackName] = function(data) {
+                cleanup();
+                if (data && data.error) {
+                    if (onError) onError(new Error(data.error));
+                } else {
+                    if (onSuccess) onSuccess(data);
+                }
+            };
+
+            // Masukkan elemen script dinamik ke dalam DOM (Melepasi sekatan CORS secara total)
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = url;
+            script.onerror = function() {
+                cleanup();
+                if (onError) onError(new Error("Gagal menghubungkan ke talian Google. Sila periksa pautan internet atau URL Apps Script anda."));
+            };
+
+            document.body.appendChild(script);
+        }
+
         // TUKAR KATEGORI SEKOLAH (BERSIHKAN PESANAN LAMA JIKA ADA PERTUKARAN KATEGORI)
         function tukaranKategoriSekolah() {
             const kat = document.getElementById('kategoriSekolah').value;
@@ -733,7 +780,6 @@
                 troliPesanan = {};
                 kemaskiniTroliRingkasan();
                 
-                // Reset aliran jika sekolah ditukar ke SABK / SRA dan sedang dalam mod Khas
                 if (aliranSemasa === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
                     aliranSemasa = "";
                     document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
@@ -747,7 +793,7 @@
             }
         }
 
-        // 1. PROSES SARINGAN EMEL DENGAN CARIAN CLOUD MASA-NYATA (100% KEBAL CORS DENGAN TEKNIK JSONP)
+        // 1. PROSES SARINGAN EMEL DENGAN CARIAN CLOUD MASA-NYATA (100% BEBAS CORS JAWAPAN LENGKAP)
         function prosesSaringanEmel() {
             const inputEmel = document.getElementById('emelSaringan').value.trim().toLowerCase();
             
@@ -760,14 +806,12 @@
             const spinner = document.getElementById('spinnerSaringan');
             const teksSaringan = document.getElementById('teksSaringan');
 
-            // Aktifkan Loading Spinner
             btnSaringan.disabled = true;
             spinner.classList.remove('hidden');
             teksSaringan.classList.add('opacity-40');
 
             emelSemasa = inputEmel;
 
-            // FUNGSI MEMULAKAN BORANG (BAHARU ATAU KEMASKINI)
             function bukaBorang(rekodDitemui) {
                 const lencana = document.getElementById('lencanaModBorang');
                 const tajukLec = document.getElementById('tajukLencana');
@@ -775,7 +819,6 @@
                 const ikonLec = document.getElementById('ikonLencana');
 
                 if (rekodDitemui) {
-                    // MOD KEMASKINI PESANAN
                     isKemaskiniMode = true;
                     idPesananSemasa = rekodDitemui.id_pesanan;
                     
@@ -787,7 +830,6 @@
                     document.getElementById('penyelaras').value = rekodDitemui.penyelaras;
                     document.getElementById('noTelefon').value = rekodDitemui.no_telefon;
 
-                    // Pulihkan troli dari pangkalan data awan
                     troliPesanan = rekodDitemui.pesanan || {};
 
                     lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-amber-50 border border-amber-200 text-amber-800";
@@ -797,11 +839,9 @@
 
                     tunjukkanToast("Sedia! Rekod pesanan anda telah ditarik keluar daripada Google Sheets.", "success");
                     
-                    // Kesan jika ada buku braille diisi
                     isFormatBraille = Object.keys(troliPesanan).some(kod => kod.startsWith("BTK") && databaseBukuKhasBraille.some(b => b.kod === kod));
                     document.getElementById('toggleBraille').checked = isFormatBraille;
                     
-                    // Pulihkan pilihan aliran secara visual jika ada rekod
                     let adaPerdana = Object.keys(troliPesanan).some(kod => !kod.startsWith("BAK") && !kod.startsWith("BTK") && !kod.startsWith("DTK") && !kod.startsWith("DAK") && !kod.startsWith("ETK") && !kod.startsWith("EAK"));
                     let adaKhas = Object.keys(troliPesanan).some(kod => kod.startsWith("BAK") || kod.startsWith("BTK") || kod.startsWith("DTK") || kod.startsWith("DAK") || kod.startsWith("ETK") || kod.startsWith("EAK"));
                     
@@ -811,7 +851,6 @@
                         selectAliran('khas');
                     }
                 } else {
-                    // MOD PESANAN BAHARU
                     isKemaskiniMode = false;
                     idPesananSemasa = "";
                     troliPesanan = {};
@@ -850,7 +889,6 @@
                 l0.classList.add('opacity-40');
                 document.getElementById('emelSaringan').disabled = true;
                 
-                // Matikan Loading Spinner
                 btnSaringan.disabled = false;
                 spinner.classList.add('hidden');
                 teksSaringan.classList.remove('opacity-40');
@@ -858,7 +896,6 @@
                 kemaskiniTroliRingkasan();
             }
 
-            // Jika tiada SCRIPT_URL dipautkan, sistem menggunakan local simulation fallback
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
                 setTimeout(() => {
                     let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
@@ -874,54 +911,24 @@
                 return;
             }
 
-            // ==========================================
-            // LOGIK UTAMA JSONP (100% BEBAS SEKATAN CORS)
-            // ==========================================
-            // Janakan nama callback unik
-            const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
-            const queryUrl = `${SCRIPT_URL}?action=semak_emel&emel=${encodeURIComponent(emelSemasa)}`;
-
-            // Sediakan sistem keselamatan pencetusan lambat (Timeout 15 saat)
-            const timeoutTimer = setTimeout(() => {
-                cleanupJSONP();
-                tunjukkanToast("Semakan talian awan mengambil masa terlalu lama. Membuka mod luar talian (local storage)...", "error");
-                let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
-                bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
-            }, 15000);
-
-            function cleanupJSONP() {
-                clearTimeout(timeoutTimer);
-                const scriptEl = document.getElementById(callbackName);
-                if (scriptEl) {
-                    document.body.removeChild(scriptEl);
-                }
-                delete window[callbackName];
-            }
-
-            // Isytiharkan callback function global untuk dipanggil oleh Google Apps Script
-            window[callbackName] = function(res) {
-                cleanupJSONP();
+            // HANTAR PERTANYAAN AWAN MELALUI JSONP (100% BEBAS CORS)
+            panggilAPIJsonp({
+                action: "semak_emel",
+                emel: emelSemasa
+            }, function(res) {
                 if (res && res.found) {
                     bukaBorang(res);
                 } else {
                     bukaBorang(null);
                 }
-            };
-
-            // Bina tag <script> secara dinamik untuk diletakkan ke dalam dokumen
-            const script = document.createElement('script');
-            script.id = callbackName;
-            script.src = `${queryUrl}&callback=${callbackName}`;
-            script.onerror = function() {
-                cleanupJSONP();
-                tunjukkanToast("Ralat pautan pangkalan data Google. Membuka mod luar talian (local storage)...", "error");
+            }, function(err) {
+                tunjukkanToast("Gagal menyemak rekod awan: " + err.message + ". Menggunakan mod simpanan peranti (luar talian).", "error");
                 let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
                 bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
-            };
-
-            document.body.appendChild(script);
+            });
         }
 
+        // TUKAR EMAIL / GANTI EMAIL
         function tukarEmel() {
             document.getElementById('kawasanBorangUtama').classList.add('hidden', 'opacity-0');
             const l0 = document.getElementById('kawasanLangkah0');
@@ -932,7 +939,7 @@
             emelInput.focus();
         }
 
-        // 1. MEMILIH ALIRAN UTAMA (Mengekalkan data troli multi-aliran)
+        // 2. MEMILIH ALIRAN UTAMA (Mengekalkan data troli multi-aliran)
         function selectAliran(aliran) {
             const kat = document.getElementById('kategoriSekolah').value;
             if (!kat) {
@@ -941,7 +948,6 @@
                 return;
             }
 
-            // Sekatan Aliran Khas untuk SABK dan SRA
             if (aliran === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
                 tunjukkanToast("Tiada pesanan Aliran Pendidikan Khas ditawarkan bagi kategori sekolah SABK / SRA.", "error");
                 return;
@@ -991,7 +997,6 @@
             if (aliranSemasa === 'perdana') {
                 senaraiDipaparkan = (databaseBukuPerdana[katSekolah] || []).map(b => ({ ...b, aliran_utama: "PERDANA", aliran_kategori: "Arus Perdana" }));
             } else {
-                // Aliran Pendidikan Khas (Kosong secara automatik untuk SABK dan SRA)
                 const standardKhas = (databaseBukuKhasStandard[katSekolah] || []).map(b => ({ ...b, aliran_utama: "PENDIDIKAN KHAS", aliran_kategori: "PENDIDIKAN KHAS" }));
                 senaraiDipaparkan = [...standardKhas];
 
@@ -1001,7 +1006,6 @@
                 }
             }
 
-            // Tapis mengikut carian
             const senaraiDitapis = senaraiDipaparkan.filter(buku => {
                 return buku.kod.toLowerCase().includes(carian) || buku.tajuk.toLowerCase().includes(carian);
             });
@@ -1073,7 +1077,6 @@
             kemaskiniTroliRingkasan();
         }
 
-        // SET KUANTITI TERUS (MANUAL INPUT)
         function setKuantitiTerus(kod, nilai) {
             let kuantitiBaru = parseInt(nilai) || 0;
             if (kuantitiBaru < 0) kuantitiBaru = 0;
@@ -1088,7 +1091,6 @@
             kemaskiniTroliRingkasan();
         }
 
-        // CARI BUKU
         function cariBuku() {
             janaKatalogBuku();
         }
@@ -1290,7 +1292,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS DENGAN TINDAKAN POST 'no-cors' (MENCEGAH CORS BLOCK SEMASA MENULIS DATA)
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS (SAMA SEKALI KEBANG JAWAPAN AWAN JSONP - 100% CORS-FREE)
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1311,6 +1313,7 @@
                 pesanan: troliPesanan
             };
 
+            // Simpan secara lokal sebagai pelan luar talian sandaran
             localStorage.setItem(`spbt_order_${emelSemasa}`, JSON.stringify(dataPesanan));
 
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
@@ -1343,11 +1346,10 @@
                 }
             }
 
-            const finalPayload = {
-                action: "hantar_pesanan",
+            const payloadUntukSheets = {
                 id_pesanan: generatedId,
                 status_pesanan: statusMod,
-                emel: emelSemasa,
+                emel: dataPesanan.emel,
                 kod_sekolah: dataPesanan.kod_sekolah,
                 nama_sekolah: dataPesanan.nama_sekolah,
                 negeri: dataPesanan.negeri,
@@ -1358,28 +1360,18 @@
                 pesanan: flatPesananArray
             };
 
-            // Menggunakan mode: "no-cors" pada POST request menghalang pelayar web dari menyekat penghantaran borang
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8'
-                },
-                body: JSON.stringify(finalPayload)
-            })
-            .then(() => {
-                tunjukkanToast(`Pesanan ${statusMod} berjaya diproses! Rekod lama telah diganti tulis & salinan e-mel telah dihantar.`, "success");
+            // Hantar data pendaftaran menggunakan kaedah JSONP (100% BEBAS CORS & FAILED TO FETCH)
+            panggilAPIJsonp({
+                action: "hantar_pesanan",
+                data: JSON.stringify(payloadUntukSheets)
+            }, function(res) {
+                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar ke Google Sheets! Salinan e-mel rasmi juga telah selamat dikirimkan.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
-            })
-            .catch(error => {
-                tunjukkanToast("Gagal menghantar: " + error.message, "error");
-            })
-            .finally(() => {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                ikon.classList.remove('hidden');
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }, function(err) {
+                tunjukkanToast("Gagal mendaftarkan data pesanan ke awan: " + err.message + ". Menyimpan salinan secara tempatan di peranti.", "error");
+                tutupModalPengesahan();
+                tukarEmel();
             });
         }
     </script>
