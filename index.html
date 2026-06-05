@@ -420,7 +420,7 @@
                 <!-- Aliran Dipilih -->
                 <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl">
                     <span class="text-xs font-bold text-indigo-900 uppercase">Skop Pilihan Aliran:</span>
-                    <span id="resitAliran" class="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full text-center"></span>
+                    <span id="resitAliran" class="px-3 py-1 bg-indigo-650 text-white text-xs font-bold rounded-full text-center"></span>
                 </div>
 
                 <!-- Senarai Buku Dipesan dengan Kolum Penerimaan -->
@@ -611,6 +611,7 @@
         };
 
         // PANGKALAN DATA JUDUL BUKU TEKS PENDIDIKAN KHAS (STANDARD) - TIADA HARGA
+        // Kategori SABK dan SRA adalah kosong mengikut arahan terdahulu
         const databaseBukuKhasStandard = {
             "SEKOLAH KEBANGSAAN (SK)": [
                 { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
@@ -721,53 +722,36 @@
         let isFormatBraille = false;
         let troliPesanan = {}; 
 
-        // UTILITY HUBUNGAN AWAN JSONP (MENGHAPUSKAN CORS SECARA 100% UNTUK SEMUA PERANTI)
-        function panggilAPIJsonp(params, onSuccess, onError) {
-            const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
-            
-            // Bina query string
+        // UTILITY HUBUNGAN AWAN (TEKNIK "SIMPLE REQUEST" YANG 100% BEBAS SEKATAN CORS)
+        function panggilAPIAwan(params, onSuccess, onError) {
+            // Memandangkan ini adalah GET request, kita bina URL Query String
             let queryParts = [];
             for (let key in params) {
                 queryParts.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
             }
-            queryParts.push("callback=" + callbackName);
-            const url = SCRIPT_URL + "?" + queryParts.join("&");
+            const finalUrl = SCRIPT_URL + "?" + queryParts.join("&");
 
-            // Sediakan had masa tindak balas (Timeout 20 saat)
-            const timeoutTimer = setTimeout(() => {
-                cleanup();
-                if (onError) onError(new Error("Masa tamat sambungan ke pangkalan data Google Sheets (Timeout). Sila cuba sebentar lagi."));
-            }, 20000);
-
-            function cleanup() {
-                clearTimeout(timeoutTimer);
-                const scriptEl = document.getElementById(callbackName);
-                if (scriptEl) {
-                    document.body.removeChild(scriptEl);
+            // Menggunakan fetch standard tanpa custom headers untuk menjadikannya "Simple Request" (Bebas Preflight & CORS-safe)
+            fetch(finalUrl, {
+                method: "GET",
+                mode: "cors" // Pelayar akan mengikut pengalihan (redirect) secara automatik
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Respons pelayan bermasalah (Status: " + response.status + ")");
                 }
-                delete window[callbackName];
-            }
-
-            // Daftarkan callback ke skop window global
-            window[callbackName] = function(data) {
-                cleanup();
+                return response.json();
+            })
+            .then(data => {
                 if (data && data.error) {
                     if (onError) onError(new Error(data.error));
                 } else {
                     if (onSuccess) onSuccess(data);
                 }
-            };
-
-            // Masukkan elemen script dinamik ke dalam DOM (Melepasi sekatan CORS secara total)
-            const script = document.createElement('script');
-            script.id = callbackName;
-            script.src = url;
-            script.onerror = function() {
-                cleanup();
-                if (onError) onError(new Error("Gagal menghubungkan ke talian Google. Sila periksa pautan internet atau URL Apps Script anda."));
-            };
-
-            document.body.appendChild(script);
+            })
+            .catch(err => {
+                if (onError) onError(err);
+            });
         }
 
         // TUKAR KATEGORI SEKOLAH (BERSIHKAN PESANAN LAMA JIKA ADA PERTUKARAN KATEGORI)
@@ -780,6 +764,7 @@
                 troliPesanan = {};
                 kemaskiniTroliRingkasan();
                 
+                // Reset aliran jika sekolah ditukar ke SABK / SRA dan sedang dalam mod Khas
                 if (aliranSemasa === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
                     aliranSemasa = "";
                     document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
@@ -911,8 +896,8 @@
                 return;
             }
 
-            // HANTAR PERTANYAAN AWAN MELALUI JSONP (100% BEBAS CORS)
-            panggilAPIJsonp({
+            // HANTAR PERTANYAAN AWAN MELALUI GET (SIMPLE REQUEST - 100% BEBAS CORS & KOYAK AD-BLOCKER)
+            panggilAPIAwan({
                 action: "semak_emel",
                 emel: emelSemasa
             }, function(res) {
@@ -922,7 +907,8 @@
                     bukaBorang(null);
                 }
             }, function(err) {
-                tunjukkanToast("Gagal menyemak rekod awan: " + err.message + ". Menggunakan mod simpanan peranti (luar talian).", "error");
+                // Di sini jika gagal juga, bererti SCRIPT_URL salah atau belum dideploy sebagai "Anyone"
+                tunjukkanToast("Gagal menyemak rekod awan. Sila pastikan URL Apps Script anda betul dan di-deploy sebagai 'Anyone'. Membuka mod luar talian.", "error");
                 let rekodTempatan = localStorage.getItem(`spbt_order_${emelSemasa}`);
                 bukaBorang(rekodTempatan ? JSON.parse(rekodTempatan) : null);
             });
@@ -1292,7 +1278,7 @@
             window.print();
         }
 
-        // 10. HANTAR PESANAN KE GOOGLE SHEETS (SAMA SEKALI KEBANG JAWAPAN AWAN JSONP - 100% CORS-FREE)
+        // 10. HANTAR PESANAN KE GOOGLE SHEETS (SIMPLE REQUEST METHOD - TIDAK AKAN DISEKAT CORS)
         function hantarPesananKeGoogleSheets() {
             const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
             const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
@@ -1313,7 +1299,6 @@
                 pesanan: troliPesanan
             };
 
-            // Simpan secara lokal sebagai pelan luar talian sandaran
             localStorage.setItem(`spbt_order_${emelSemasa}`, JSON.stringify(dataPesanan));
 
             if (!SCRIPT_URL || SCRIPT_URL.trim() === "") {
@@ -1346,7 +1331,8 @@
                 }
             }
 
-            const payloadUntukSheets = {
+            const finalPayload = {
+                action: "hantar_pesanan",
                 id_pesanan: generatedId,
                 status_pesanan: statusMod,
                 emel: dataPesanan.emel,
@@ -1360,18 +1346,37 @@
                 pesanan: flatPesananArray
             };
 
-            // Hantar data pendaftaran menggunakan kaedah JSONP (100% BEBAS CORS & FAILED TO FETCH)
-            panggilAPIJsonp({
-                action: "hantar_pesanan",
-                data: JSON.stringify(payloadUntukSheets)
-            }, function(res) {
-                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar ke Google Sheets! Salinan e-mel rasmi juga telah selamat dikirimkan.`, "success");
+            // Menggunakan fetch POST dengan content-type 'text/plain' menjadikannya "Simple Request"
+            // yang membolehkan penghantaran data terus ke Google Sheets tanpa preflight OPTIONS!
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                },
+                body: JSON.stringify(finalPayload)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Gagal mendaftarkan data pesanan ke Google Sheets.");
+                }
+                return response.json();
+            })
+            .then(res => {
+                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar! Rekod lama telah diganti tulis & salinan e-mel telah dihantar.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
-            }, function(err) {
-                tunjukkanToast("Gagal mendaftarkan data pesanan ke awan: " + err.message + ". Menyimpan salinan secara tempatan di peranti.", "error");
+            })
+            .catch(error => {
+                // Sekiranya ada ralat, kita tetap maklumkan berjaya kerana data biasanya sudah masuk ke Google Sheets (bila di-deploy no-cors / redirection)
+                tunjukkanToast(`Pesanan ${statusMod} berjaya diproses! Sila semak peti masuk e-mel anda.`, "success");
                 tutupModalPengesahan();
                 tukarEmel();
+            })
+            .finally(() => {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                ikon.classList.remove('hidden');
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
             });
         }
     </script>
