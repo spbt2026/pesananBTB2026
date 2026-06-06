@@ -1,1308 +1,1548 @@
 <!DOCTYPE html>
-<html lang="ms" class="h-full bg-slate-50">
+<html lang="ms" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SKIM PINJAMAN BUKU TEKS</title>
-    <!-- Tailwind CSS -->
+    <title>Sistem Pesanan Buku Teks Terbitan Baharu - Skim Pinjaman Buku Teks</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4fe',
+                            100: '#dbe5fc',
+                            200: '#bfd1fa',
+                            300: '#94b2f6',
+                            400: '#648cf0',
+                            500: '#4066e7',
+                            600: '#2b4ad9',
+                            700: '#2139c4',
+                            800: '#1f309f',
+                            900: '#1e2b7f',
+                            950: '#12194f',
+                        }
+                    }
+                }
+            }
         }
-
-        /* STYLES KHAS UNTUK CETAKAN (PRINT MODE) */
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Menyembunyikan spinner input number bagi penampilan kemas */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        /* GAYA KHAS UNTUK CETAKAN RESIT FIKSAH */
         @media print {
-            body > *:not(#modalPengesahan) {
+            /* Sembunyikan segalanya secara lalai semasa mencetak */
+            body, html {
+                background: #ffffff !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt !important;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+            .no-print {
                 display: none !important;
             }
             
-            #modalPengesahan {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
+            /* Hapuskan sekatan skrol jadual supaya seluruh rekod judul buku terdedah semasa cetakan */
+            .max-h-96 {
+                max-height: none !important;
                 height: auto !important;
                 overflow: visible !important;
-                background: none !important;
-                backdrop-filter: none !important;
-                display: block !important;
             }
-
-            #modalKandungan {
+            .overflow-y-auto {
+                overflow: visible !important;
+                max-height: none !important;
+            }
+            
+            /* Set semula saiz dan margin bagi menepati ruang kertas A4 */
+            .print-layout {
                 box-shadow: none !important;
                 border: none !important;
-                max-height: none !important;
-                overflow: visible !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
                 width: 100% !important;
-                transform: none !important;
-                opacity: 1 !important;
-                display: flex !important;
-                flex-direction: column !important;
+                max-width: 100% !important;
             }
-
-            #modalKandungan > div:first-child, 
-            #modalKandungan > div:last-child {
+            
+            /* Hanya paparkan seksyen resit cetakan sahaja */
+            header, footer, [id^="step-"], [id^="section-step-"]:not(#section-step-4) {
                 display: none !important;
             }
-
-            #printArea {
-                overflow: visible !important;
-                max-height: none !important;
+            
+            main {
                 padding: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            
+            #section-step-4 {
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            /* Kebolehbacaan Tinggi Jadual */
+            table {
+                width: 100% !important;
+                page-break-inside: auto;
+                border: 1px solid #cbd5e1 !important;
+            }
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            thead {
+                display: table-header-group;
+            }
+            th {
+                background-color: #f1f5f9 !important;
+                color: #000000 !important;
+                font-weight: bold !important;
+                border-bottom: 2px solid #94a3b8 !important;
+            }
+            td {
+                border-bottom: 1px solid #e2e8f0 !important;
             }
         }
     </style>
 </head>
-<body class="flex flex-col min-h-screen text-slate-800">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased">
 
-    <!-- HEADER UTAMA -->
-    <header class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-xl sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-4 text-center md:text-left">
-                    <div class="p-2.5 bg-white/10 rounded-xl backdrop-blur-md border border-white/10 shadow-inner">
-                        <i class="fa-solid fa-book-open-reader text-3xl text-amber-400"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">SISTEM PENGURUSAN PESANAN BUKU TEKS</h1>
-                        <p class="text-xs sm:text-sm font-semibold tracking-wider text-amber-400 uppercase mt-0.5">SKIM PINJAMAN BUKU TEKS</p>
-                    </div>
+    <!-- HEADER & BANNER UTAMA -->
+    <header class="bg-gradient-to-r from-brand-900 via-indigo-950 to-brand-950 text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="bg-white p-2.5 rounded-xl shadow-inner flex items-center justify-center">
+                    <svg class="w-10 h-10 text-brand-900" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                    </svg>
                 </div>
-                <div class="flex items-center gap-2 bg-green-500/10 px-4 py-2 rounded-lg border border-green-500/20 text-xs sm:text-sm font-semibold text-green-300">
-                    <span class="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
-                    <span>Talian Storan Awan Aktif</span>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2">
+                        <span>SISTEM PESANAN BUKU TEKS TERBITAN BAHARU</span>
+                        <span class="bg-amber-500 text-brand-950 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"></span>
+                    </h1>
+                    <p class="text-xs text-brand-200 font-medium tracking-wide">Skim Pinjaman Buku Teks (SPBT)</p>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- PENUNJUK LANGKAH (PROGRESS STEP TRACKER) -->
+    <div class="bg-white border-b border-slate-200 py-4 shadow-sm no-print">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="flex items-center justify-between">
+                
+                <!-- Langkah 1 -->
+                <div id="step-node-1" class="flex flex-col items-center flex-1">
+                    <div id="step-badge-1" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-brand-600 text-white transition-all shadow-md">1</div>
+                    <span id="step-text-1" class="text-xs mt-2 font-bold text-brand-800 transition-all">Semakan E-mel</span>
+                </div>
+
+                <div id="step-line-1" class="h-1 flex-1 bg-slate-200 transition-all duration-300"></div>
+
+                <!-- Langkah 2 -->
+                <div id="step-node-2" class="flex flex-col items-center flex-1">
+                    <div id="step-badge-2" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 text-slate-500 transition-all">2</div>
+                    <span id="step-text-2" class="text-xs mt-2 font-medium text-slate-400 transition-all">Maklumat Sekolah</span>
+                </div>
+
+                <div id="step-line-2" class="h-1 flex-1 bg-slate-200 transition-all duration-300"></div>
+
+                <!-- Langkah 3 -->
+                <div id="step-node-3" class="flex flex-col items-center flex-1">
+                    <div id="step-badge-3" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 text-slate-500 transition-all">3</div>
+                    <span id="step-text-3" class="text-xs mt-2 font-medium text-slate-400 transition-all">Data Pesanan</span>
+                </div>
+
+                <div id="step-line-3" class="h-1 flex-1 bg-slate-200 transition-all duration-300"></div>
+
+                <!-- Langkah 4 -->
+                <div id="step-node-4" class="flex flex-col items-center flex-1">
+                    <div id="step-badge-4" class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 text-slate-500 transition-all">✓</div>
+                    <span id="step-text-4" class="text-xs mt-2 font-medium text-slate-400 transition-all">Resit & Selesai</span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- KANDUNGAN UTAMA (MAIN CONTENT WRAPPER) -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full print-layout">
         
-        <!-- LANGKAH 1: SARINGAN EMEL PENYELARAS (Pusat / Center) -->
-        <section id="kawasanLangkah0" class="bg-white rounded-2xl shadow-md border border-slate-100 p-6 sm:p-8 mb-8 transition-all duration-500 text-center pb-10">
-            <div class="flex items-center justify-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm">1</span>
-                <h2 class="text-lg font-bold text-slate-900">Pendaftaran & Semakan E-mel Pengguna</h2>
+        <!-- ======================= BAHAGIAN 1: SEMAKAN EMAIL ======================= -->
+        <section id="section-step-1" class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden mt-6 transition-all duration-300 no-print">
+            <div class="bg-gradient-to-r from-brand-800 to-indigo-900 p-6 text-white text-center">
+                <h2 class="text-xl font-bold">Mula Pengisian Pesanan</h2>
+                <p class="text-xs text-brand-100 mt-2">Sila masukkan alamat e-mel rasmi pengguna untuk semakan rekod atau pendaftaran pengguna baharu.</p>
             </div>
             
-            <div class="max-w-xl mx-auto text-center">
-                <p class="text-slate-600 text-sm mb-6 leading-relaxed">
-                    Sila masukkan alamat e-mel rasmi anda untuk mula memuatkan borang. Sistem akan menyemak data pesanan sedia ada secara terus daripada storan awan Google Sheets untuk dikemaskini.
-                </p>
-                
-                <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                    <div class="w-full sm:max-w-md text-left">
-                        <label for="emelSaringan" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Alamat E-mel Penyelaras</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-envelope"></i>
-                            </span>
-                            <input type="email" id="emelSaringan" placeholder="Contoh: g-xxxxxxxx@moe-dl.edu.my" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-700">
-                        </div>
+            <form id="form-step-1" onsubmit="prosesSemakanEmail(event)" class="p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Alamat E-mel Pengguna</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-envelope"></i>
+                        </span>
+                        <input 
+                            type="email" 
+                            id="input-email"
+                            required 
+                            placeholder="contoh: g-xxxxxxxx@moe-dl.edu.my" 
+                            class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-sm font-medium"
+                        />
                     </div>
-                    <div class="pt-6 sm:pt-0">
-                        <button type="button" id="btnHantarSaringan" onclick="prosesSaringanEmel()" 
-                            class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold px-8 py-3.5 rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer min-w-[150px]">
-                            <span id="spinnerSaringan" class="hidden animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                            <span id="teksSaringan">Seterusnya <i class="fa-solid fa-arrow-right-long"></i></span>
-                        </button>
-                    </div>
+                    <p class="text-xs text-slate-500 mt-2.5 leading-relaxed">
+                        <i class="fa-solid fa-circle-info text-brand-500 mr-1"></i>
+                        Jika e-mel ini pernah digunakan, sistem akan memuatkan semula data sebelumnya untuk dikemaskini (*overwrite*).
+                    </p>
                 </div>
-            </div>
+
+                <button 
+                    type="submit" 
+                    id="btn-submit-step-1"
+                    class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 px-4 rounded-xl transition duration-300 shadow-md hover:shadow-lg flex items-center justify-center space-x-2"
+                >
+                    <span>Seterusnya & Semak E-mel</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
         </section>
 
-        <!-- KAWASAN KEMASUKAN DATA UTAMA (DISEMBUNYIKAN SEHINGGA EMEL DISAHKAN) -->
-        <div id="kawasanBorangUtama" class="hidden opacity-0 transition-all duration-700 space-y-8">
-            
-            <!-- MAKLUMAT MOD AKTIF -->
-            <div id="lencanaModBorang" class="p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
-                <div class="flex items-center gap-3">
-                    <span id="ikonLencana" class="p-2 rounded-lg text-white text-base"></span>
-                    <div>
-                        <span id="tajukLencana" class="text-xs font-bold uppercase tracking-widest block"></span>
-                        <span id="subLencana" class="text-xs font-medium"></span>
-                    </div>
+        <!-- ======================= BAHAGIAN 2: MAKLUMAT ASAS SEKOLAH ======================= -->
+        <section id="section-step-2" class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden hidden transition-all duration-300 no-print">
+            <div class="bg-gradient-to-r from-brand-800 to-indigo-900 px-6 py-4 text-white flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold">Langkah 2: Maklumat Asas Sekolah</h2>
+                    <p class="text-xs text-brand-100">Lengkapkan maklumat sekolah di bawah dengan teliti.</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-xs text-slate-500 font-semibold" id="teksEmelAktif"></span>
-                    <button type="button" onclick="tukarEmel()" class="text-xs font-bold text-red-600 hover:underline flex items-center gap-1 cursor-pointer">
-                        <i class="fa-solid fa-arrow-left-rotate"></i> Tukar E-mel
-                    </button>
-                </div>
+                <span id="badge-kemaskini" class="bg-amber-500 text-brand-950 text-[10px] font-black px-3 py-1 rounded-full animate-pulse hidden">
+                    KEMASKINI REKOD
+                </span>
             </div>
 
-            <!-- STEP 2: PROFIL SEKOLAH -->
-            <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 transition-all duration-300 hover:shadow-md">
-                <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">2</span>
-                    <h2 class="text-lg font-bold text-slate-900">Maklumat Profil Sekolah</h2>
-                </div>
+            <form id="form-step-2" onsubmit="prosesMaklumatSekolah(event)" class="p-6 space-y-6">
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Kod Sekolah -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center space-x-3.5">
+                    <div class="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center text-brand-800">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
                     <div>
-                        <label for="kodSekolah" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Kod Sekolah</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-id-card"></i>
-                            </span>
-                            <input type="text" id="kodSekolah" placeholder="Contoh: WBA0143" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 uppercase placeholder:normal-case placeholder:text-[13px]">
-                        </div>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Log Masuk Sebagai:</p>
+                        <p id="display-user-email" class="text-sm font-bold text-slate-800">-</p>
                     </div>
+                </div>
 
-                    <!-- Nama Sekolah -->
-                    <div class="md:col-span-2">
-                        <label for="namaSekolah" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Nama Sekolah</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-school"></i>
-                            </span>
-                            <input type="text" id="namaSekolah" placeholder="SILA MASUKKAN NAMA PENUH SEKOLAH" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 uppercase placeholder:text-[13px]">
-                        </div>
-                    </div>
-
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
                     <!-- Negeri -->
                     <div>
-                        <label for="negeri" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Negeri</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-map-location-dot"></i>
-                            </span>
-                            <select id="negeri" class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 appearance-none">
-                                <option value="">-- Pilih Negeri --</option>
-                                <option value="Kuala Lumpur">Kuala Lumpur</option>
-                                <option value="Selangor">Selangor</option>
-                                <option value="Johor">Johor</option>
-                                <option value="Kedah">Kedah</option>
-                                <option value="Kelantan">Kelantan</option>
-                                <option value="Melaka">Melaka</option>
-                                <option value="Negeri Sembilan">Negeri Sembilan</option>
-                                <option value="Pahang">Pahang</option>
-                                <option value="Perak">Perak</option>
-                                <option value="Perlis">Perlis</option>
-                                <option value="Pulau Pinang">Pulau Pinang</option>
-                                <option value="Sabah">Sabah</option>
-                                <option value="Sarawak">Sarawak</option>
-                                <option value="Terengganu">Terengganu</option>
-                                <option value="Labuan">Labuan</option>
-                                <option value="Putrajaya">Putrajaya</option>
-                            </select>
-                        </div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Negeri</label>
+                        <select 
+                            id="input-negeri"
+                            required
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm"
+                        >
+                            <option value="">-- Pilih Negeri --</option>
+                            <option value="Johor">Johor</option>
+                            <option value="Kedah">Kedah</option>
+                            <option value="Kelantan">Kelantan</option>
+                            <option value="Melaka">Melaka</option>
+                            <option value="Negeri Sembilan">Negeri Sembilan</option>
+                            <option value="Pahang">Pahang</option>
+                            <option value="Pulau Pinang">Pulau Pinang</option>
+                            <option value="Perak">Perak</option>
+                            <option value="Perlis">Perlis</option>
+                            <option value="Selangor">Selangor</option>
+                            <option value="Terengganu">Terengganu</option>
+                            <option value="Sabah">Sabah</option>
+                            <option value="Sarawak">Sarawak</option>
+                            <option value="Wilayah Persekutuan Kuala Lumpur">Wilayah Persekutuan Kuala Lumpur</option>
+                            <option value="Wilayah Persekutuan Putrajaya">Wilayah Persekutuan Putrajaya</option>
+                            <option value="Wilayah Persekutuan Labuan">Wilayah Persekutuan Labuan</option>
+                        </select>
                     </div>
 
-                    <!-- Daerah -->
+                    <!-- PPD -->
                     <div>
-                        <label for="daerah" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Daerah / PPD</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-location-crosshairs"></i>
-                            </span>
-                            <input type="text" id="daerah" placeholder="Contoh: SENTUL / KUANTAN" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 uppercase placeholder:text-[13px]">
-                        </div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Pejabat Pendidikan Daerah (PPD)</label>
+                        <input 
+                            type="text" 
+                            id="input-ppd"
+                            required
+                            placeholder="Contoh: PPD Larut Matang Dan Selama"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm"
+                        />
+                    </div>
+
+                    <!-- Kod Sekolah -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kod Sekolah</label>
+                        <input 
+                            type="text" 
+                            id="input-kod-sekolah"
+                            required
+                            placeholder="Contoh: ABA1234"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm uppercase"
+                        />
                     </div>
 
                     <!-- Kategori Sekolah -->
                     <div>
-                        <label for="kategoriSekolah" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Kategori Sekolah</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-graduation-cap"></i>
-                            </span>
-                            <select id="kategoriSekolah" onchange="tukaranKategoriSekolah()" class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-bold text-blue-900 appearance-none">
-                                <option value="">-- Pilih Kategori --</option>
-                                <option value="SEKOLAH KEBANGSAAN (SK)">SEKOLAH KEBANGSAAN (SK)</option>
-                                <option value="SEKOLAH JENIS KEBANGSAAN CINA (SJKC)">SEKOLAH JENIS KEBANGSAAN CINA (SJKC)</option>
-                                <option value="SEKOLAH JENIS KEBANGSAAN TAMIL (SJKT)">SEKOLAH JENIS KEBANGSAAN TAMIL (SJKT)</option>
-                                <option value="SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)">SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)</option>
-                                <option value="SEKOLAH RENDAH AGAMA (SRA)">SEKOLAH RENDAH AGAMA (SRA)</option>
-                            </select>
-                        </div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kategori Sekolah</label>
+                        <select 
+                            id="input-kategori-sekolah"
+                            required
+                            class="w-full px-4 py-2.5 rounded-lg border border-emerald-600 bg-emerald-50 text-emerald-950 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 transition text-sm"
+                        >
+                            <option value="SK">SEKOLAH KEBANGSAAN (SK)</option>
+                            <option value="SJKC">SEKOLAH JENIS KEBANGSAAN CINA (SJKC)</option>
+                            <option value="SJKT">SEKOLAH JENIS KEBANGSAAN TAMIL (SJKT)</option>
+                            <option value="SABK">SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)</option>
+                            <option value="SRA">SEKOLAH RENDAH AGAMA (SRA)</option>
+                        </select>
+                    </div>
+
+                    <!-- Nama Sekolah -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nama Sekolah</label>
+                        <input 
+                            type="text" 
+                            id="input-nama-sekolah"
+                            required
+                            placeholder="Contoh: SK CONVENT"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm"
+                        />
                     </div>
 
                     <!-- Nama Penyelaras -->
-                    <div class="md:col-span-2">
-                        <label for="penyelaras" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Nama Penyelaras SPBT Sekolah</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-user-tie"></i>
-                            </span>
-                            <input type="text" id="penyelaras" placeholder="NAMA PENUH GURU PENYELARAS" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 uppercase placeholder:text-[13px]">
-                        </div>
-                    </div>
-
-                    <!-- Nombor Telefon Penyelaras -->
                     <div>
-                        <label for="noTelefon" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">No. Telefon Penyelaras</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                <i class="fa-solid fa-phone"></i>
-                            </span>
-                            <input type="text" id="noTelefon" placeholder="Contoh: 0123456789" 
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-semibold text-slate-700 placeholder:text-[13px]">
-                        </div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nama Guru Penyelaras SPBT</label>
+                        <input 
+                            type="text" 
+                            id="input-nama-guru"
+                            required
+                            placeholder="Contoh: Cikgu Sarah binti Ramli"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm"
+                        />
                     </div>
-                </div>
-            </section>
 
-            <!-- STEP 3: PILIHAN ALIRAN PESANAN -->
-            <section class="mb-8 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8">
-                <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">3</span>
-                    <h2 class="text-lg font-bold text-slate-900">Sila Pilih Aliran Pesanan Buku Teks</h2>
+                    <!-- No Telefon -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">No. Telefon Bimbit</label>
+                        <input 
+                            type="tel" 
+                            id="input-no-telefon"
+                            required
+                            placeholder="Contoh: 0198765432"
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-sm"
+                        />
+                    </div>
+
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Pilihan 1: Perdana -->
-                    <button type="button" onclick="selectAliran('perdana')" id="btnAliranPerdana" 
-                        class="group relative flex flex-col items-center justify-center p-8 bg-white border-2 border-slate-200 hover:border-blue-500 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center">
-                        <div class="p-5 bg-blue-50 text-blue-600 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fa-solid fa-user-graduate text-4xl"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">1. Pesan Buku Teks Perdana</h3>
-                        <p class="text-slate-500 text-sm max-w-sm">Aliran kurikulum arus perdana bagi sekolah rendah Tahun 1 mengikut kategori sekolah masing-masing.</p>
-                        
-                        <span id="badgePerdanaQty" class="hidden mt-3 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full"></span>
-                        
-                        <div class="absolute top-4 right-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-circle-chevron-right text-xl"></i>
-                        </div>
+                <!-- Butang Kawalan -->
+                <div class="flex justify-between items-center pt-5 border-t border-slate-150">
+                    <button 
+                        type="button"
+                        onclick="kembaliKeLangkah(1)"
+                        class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-all text-sm"
+                    >
+                        Kembali
                     </button>
-
-                    <!-- Pilihan 2: Pendidikan Khas -->
-                    <button type="button" onclick="selectAliran('khas')" id="btnAliranKhas" 
-                        class="group relative flex flex-col items-center justify-center p-8 bg-white border-2 border-slate-200 hover:border-amber-500 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 text-center">
-                        <div class="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                            <i class="fa-solid fa-universal-access text-4xl"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">2. Pesan Buku Teks Pendidikan Khas</h3>
-                        <p class="text-slate-500 text-sm max-w-sm">Aliran pendidikan khas adaptasi khusus merangkumi masalah pendengaran, penglihatan, pembelajaran, and Braille.</p>
-                        
-                        <span id="badgeKhasQty" class="hidden mt-3 px-3 py-1 bg-amber-600 text-white text-xs font-bold rounded-full"></span>
-
-                        <div class="absolute top-4 right-4 text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-circle-chevron-right text-xl"></i>
-                        </div>
+                    <button 
+                        type="submit"
+                        class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center space-x-1.5 text-sm"
+                    >
+                        <span>Seterusnya: Pengisian Data</span>
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
                     </button>
                 </div>
-            </section>
 
-            <!-- KANDUNGAN DINAMIK BORANG PESANAN -->
-            <section id="katalogKawasan" class="hidden transition-all duration-500">
+            </form>
+        </section>
+
+        <!-- ======================= BAHAGIAN 3: PENGISIAN DATA PESANAN ======================= -->
+        <section id="section-step-3" class="hidden space-y-8 transition-all duration-300 no-print">
+            
+            <!-- Rumusan Maklumat Sekolah Terpilih -->
+            <div class="bg-gradient-to-r from-brand-900 via-indigo-900 to-brand-950 p-6 rounded-2xl text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="space-y-1.5">
+                    <span id="display-kategori-sekolah" class="bg-brand-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                        SK
+                    </span>
+                    <h3 id="display-nama-sekolah" class="text-xl font-bold tracking-tight">Nama Sekolah (Kod)</h3>
+                    <p id="display-sub-sekolah" class="text-xs text-brand-200 font-medium">PPD, Negeri • Penyelaras: Guru</p>
+                </div>
+                <div class="bg-white/10 px-5 py-3.5 rounded-xl border border-white/15 text-right w-full md:w-auto">
+                    <p class="text-[10px] text-brand-300 uppercase tracking-wider font-bold">Kuantiti Ditampung Semasa</p>
+                    <p id="display-jumlah-naskah" class="text-2xl font-black text-amber-300">0 <span class="text-xs font-semibold text-white">Naskah</span></p>
+                </div>
+            </div>
+
+            <!-- Panel Pengisian Aliran (Perdana & Khas Toggles) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                <!-- Format Pilihan Braille -->
-                <div id="filterKhasBox" class="hidden bg-indigo-50 border border-indigo-150 rounded-2xl p-5 mb-8">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                <i class="fa-solid fa-eye-slash text-indigo-600 animate-pulse"></i>
-                                Tempahan Buku Teks Braille Pendidikan Khas
-                            </h4>
-                            <p class="text-xs text-slate-500 mt-1">Sila aktifkan pilihan di bawah jika sekolah anda memerlukan **Buku Teks Format Braille** di samping buku Pendidikan Khas standard.</p>
-                        </div>
-                        <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100">
-                            <span class="text-xs font-bold text-slate-400">Tidak Perlu</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="toggleBraille" onchange="toggleFormatBraille()" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </label>
-                            <span class="text-xs font-extrabold text-indigo-600">Ya, Pesan Braille Juga</span>
-                        </div>
+                <!-- Aliran Perdana Card -->
+                <div class="bg-white p-5 rounded-xl shadow-md border-2 border-brand-500 flex items-center space-x-4">
+                    <div class="bg-brand-50 p-3.5 rounded-xl text-brand-700">
+                        <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-lg">Aliran Perdana</h4>
+                        <p class="text-xs text-slate-500">Buku teks bagi kelas arus perdana mengikut kategori sekolah.</p>
+                        <span class="inline-block mt-1.5 bg-brand-100 text-brand-800 text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase">Wajib</span>
                     </div>
                 </div>
 
-                <!-- Carian & Ringkasan Pantas -->
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                    <div class="relative w-full md:w-96">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="carianBuku" oninput="cariBuku()" placeholder="Cari kod atau nama subjek buku..." 
-                            class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm font-medium">
-                    </div>
-                    <div class="text-sm font-bold text-indigo-900 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl flex items-center gap-2">
-                        <i class="fa-solid fa-layer-group"></i>
-                        Subjek dipaparkan: <span id="kiraBuku" class="text-indigo-600 font-extrabold text-base">0</span>
-                    </div>
-                </div>
-
-                <!-- Senarai Katalog Buku Teks -->
-                <div id="gridBuku" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <!-- Kad buku dijanakan secara dinamik menerusi JS -->
-                </div>
-
-                <!-- TROLI RINGKASAN & BUTANG PENGHANTARAN -->
-                <div class="bg-slate-900 text-white rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-lg">
-                    <div class="flex items-center gap-4">
-                        <div class="p-4 bg-white/10 rounded-xl border border-white/10 text-amber-400 text-2xl hidden sm:block">
-                            <i class="fa-solid fa-cart-flatbed-suitcases"></i>
-                        </div>
-                        <div>
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Ringkasan Nilai Pesanan Terkini</span>
-                            <div class="flex items-baseline gap-4 mt-1">
-                                <h3 class="text-2xl sm:text-3xl font-extrabold text-amber-400" id="totalKuantiti">0 naskhah</h3>
-                                <span class="text-xs text-slate-400 block sm:inline mt-1" id="infoPecahanAliran"></span>
+                <!-- Aliran Pendidikan Khas Card -->
+                <div id="card-pendidikan-khas" class="bg-white p-5 rounded-xl shadow-md border border-slate-200 transition-all duration-300">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div id="icon-container-khas" class="bg-slate-100 text-slate-400 p-3.5 rounded-xl transition-colors duration-300">
+                                <i class="fa-solid fa-hands-holding-child text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg">Aliran Pendidikan Khas</h4>
+                                <p class="text-xs text-slate-500">Khas bagi murid berkeperluan pendidikan khas (MBPK).</p>
+                                
+                                <div class="mt-3.5 flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="chk-guna-khas"
+                                        onchange="kawalPaparanKhas(this.checked)"
+                                        class="w-5 h-5 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer"
+                                    />
+                                    <label htmlFor="chk-guna-khas" class="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                        Aktifkan kemasukan Aliran Khas
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                        <button type="button" onclick="bukaModalPengesahan()" 
-                            class="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-3 transition-all cursor-pointer">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                            Semak & Sahkan Pesanan
-                        </button>
+                </div>
+
+            </div>
+
+            <!-- Saringan & Pencarian Buku -->
+            <div class="bg-white p-4 rounded-xl shadow-md border border-slate-200 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="w-full md:max-w-md relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                    </span>
+                    <input 
+                        type="text" 
+                        id="search-buku"
+                        onkeyup="tapisBuku(this.value)"
+                        placeholder="Tapis mengikut kod atau tajuk buku..."
+                        class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition"
+                    />
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    <span>Petunjuk: </span>
+                    <span class="bg-teal-100 text-teal-800 px-2.5 py-1 rounded-md">BA = Buku Aktiviti</span>
+                    <span class="bg-brand-100 text-brand-800 px-2.5 py-1 rounded-md">BT = Buku Teks</span>
+                </div>
+            </div>
+
+            <!-- JADUAL ALIRAN PERDANA -->
+            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+                <div class="bg-brand-800 px-6 py-4.5 text-white flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-book-open text-lg text-brand-300"></i>
+                        <h3 class="font-extrabold text-sm md:text-base">Jadual Pesanan Aliran Perdana</h3>
+                    </div>
+                    <span id="badge-total-perdana" class="bg-brand-950 text-brand-200 text-xs px-3.5 py-1 rounded-full font-black self-start sm:self-auto">
+                        Jumlah: 0 naskah
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="bg-slate-50 text-slate-700 font-extrabold border-b border-slate-200 text-xs uppercase tracking-wider">
+                            <th class="p-4 w-32">Kod Buku</th>
+                            <th class="p-4">Judul Buku Teks / Aktiviti</th>
+                            <th class="p-4 text-center w-48">Kuantiti Pesanan (Naskah)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-perdana" class="divide-y divide-slate-150 text-sm">
+                            <!-- Buku dijana secara dinamik oleh javascript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- JADUAL ALIRAN PENDIDIKAN KHAS (DILINDUNGI TOGGLE) -->
+            <div id="box-aliran-khas" class="hidden bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden transition-all duration-300">
+                <div class="bg-indigo-900 px-6 py-4.5 text-white flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-hands-holding-child text-lg text-indigo-300"></i>
+                        <h3 class="font-extrabold text-sm md:text-base">Jadual Pesanan Aliran Pendidikan Khas</h3>
+                    </div>
+                    <span id="badge-total-khas" class="bg-indigo-950 text-indigo-200 text-xs px-3.5 py-1 rounded-full font-black self-start sm:self-auto">
+                        Jumlah Khas: 0 naskah
+                    </span>
+                </div>
+
+                <div class="p-4 bg-indigo-50/50 border-b border-indigo-100">
+                    <div class="flex items-center space-x-3">
+                        <input 
+                            type="checkbox" 
+                            id="chk-guna-braille"
+                            onchange="kawalPaparanBraille(this.checked)"
+                            class="w-5 h-5 text-indigo-600 border-indigo-300 rounded focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <div>
+                            <label htmlFor="chk-guna-braille" class="text-sm font-bold text-slate-800 cursor-pointer select-none">
+                                Sekolah memerlukan Buku Teks Format Braille?
+                            </label>
+                            <p class="text-xs text-slate-500">Tandakan pilihan ini sekiranya mempunyai MBPK dengan Ketidakupayaan Penglihatan.</p>
+                        </div>
                     </div>
                 </div>
 
-            </section>
-
-        </div>
-
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 py-6 text-center text-xs sm:text-sm mt-12">
-        <div class="max-w-7xl mx-auto px-4">
-            <p>© 2026 Kementerian Pendidikan. Skim Pinjaman Buku Teks SPBT.</p>
-            <p class="text-[10px] text-slate-600 mt-1">Penyimpanan automatik disokong oleh Google Sheets Web App Integration.</p>
-        </div>
-    </footer>
-
-    <!-- MODAL POPUP RESIT & PENGESAHAN -->
-    <div id="modalPengesahan" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col transition-all transform scale-95 opacity-0 duration-300" id="modalKandungan">
-            <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-file-lines text-amber-400 text-xl"></i>
-                    <h3 class="font-bold text-lg" id="modalTajukUtama">Sahkan Maklumat & Hantar</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="bg-slate-50 text-slate-700 font-extrabold border-b border-slate-200 text-xs uppercase tracking-wider">
+                            <th class="p-4 w-32">Kod Buku</th>
+                            <th class="p-4">Judul Buku Teks Pendidikan Khas</th>
+                            <th class="p-4 text-center w-48">Kuantiti Pesanan (Naskah)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-khas" class="divide-y divide-slate-150 text-sm">
+                            <!-- Buku khas dijana secara dinamik -->
+                        </tbody>
+                    </table>
                 </div>
-                <button type="button" onclick="tutupModalPengesahan()" class="text-slate-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-xmark text-xl"></i>
+            </div>
+
+            <!-- JADUAL BUKU FORMAT BRAILLE (DILINDUNGI DOUBLE TOGGLE) -->
+            <div id="box-aliran-braille" class="hidden bg-white rounded-2xl shadow-lg border border-purple-200 overflow-hidden transition-all duration-300">
+                <div class="bg-purple-900 px-6 py-4.5 text-white flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-braille text-lg text-purple-300"></i>
+                        <h3 class="font-extrabold text-sm md:text-base">Jadual Pesanan Buku Teks Format Braille</h3>
+                    </div>
+                    <span id="badge-total-braille" class="bg-purple-950 text-purple-200 text-xs px-3.5 py-1 rounded-full font-black self-start sm:self-auto">
+                        Jumlah Braille: 0 naskah
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                          <tr class="bg-slate-50 text-slate-700 font-extrabold border-b border-slate-200 text-xs uppercase tracking-wider">
+                            <th class="p-4 w-32">Kod Buku</th>
+                            <th class="p-4">Judul Buku Teks Braille</th>
+                            <th class="p-4 text-center w-48">Kuantiti Pesanan (Naskah)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tbody-braille" class="divide-y divide-slate-150 text-sm">
+                            <!-- Buku braille dijana secara dinamik -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Butang Penyerahan Akhir -->
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 flex flex-col md:flex-row gap-4 justify-between items-center">
+                <button 
+                    type="button"
+                    onclick="kembaliKeLangkah(2)"
+                    class="w-full md:w-auto px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all text-sm"
+                >
+                    Kembali ke Maklumat Sekolah
+                </button>
+                
+                <div class="text-center md:text-right">
+                    <span class="text-xs text-slate-500 font-medium block">Jumlah Keseluruhan Ditampung</span>
+                    <span id="display-total-tampung" class="text-xl font-bold text-slate-900">0 Naskah Terpilih</span>
+                </div>
+
+                <button 
+                    type="button"
+                    onclick="simpanDanHantarPesanan()"
+                    class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-2 text-sm"
+                >
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Hantar & Simpan Pesanan</span>
                 </button>
             </div>
+
+        </section>
+
+        <!-- ======================= BAHAGIAN 4: RESIT DAN SELESAI ======================= -->
+        <section id="section-step-4" class="hidden max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-4 print-layout transition-all duration-300">
             
-            <!-- Modal Body -->
-            <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="printArea">
-                <div class="text-center border-b border-slate-100 pb-4">
-                    <h4 class="text-base font-extrabold text-slate-900">RESIT RUMUSAN PESANAN BUKU TEKS TERBITAN BAHARU</h4>
-                    <p class="text-xs text-slate-500 mt-1">Sistem Skim Pinjaman Buku Teks (SPBT)</p>
+            <!-- Banner Kejayaan -->
+            <div class="bg-emerald-600 p-8 text-white text-center no-print">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i class="fa-solid fa-circle-check text-3xl"></i>
                 </div>
+                <h2 class="text-2xl font-black">Pesanan Berjaya Dihantar!</h2>
+                <p class="text-sm text-emerald-100 mt-2">Pihak kementerian telah merekodkan pesanan sekolah anda dengan selamat.</p>
+            </div>
 
-                <!-- Info Sekolah & Penyelaras -->
-                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl text-xs sm:text-sm border border-slate-100">
-                    <div>
-                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Profil Sekolah</span>
-                        <strong id="resitNamaSekolah" class="text-slate-800"></strong>
-                        <span id="resitKodSekolah" class="block text-slate-600 font-medium"></span>
-                        <span id="resitKategoriSekolah" class="block text-slate-600 text-[11px] italic"></span>
+            <!-- Kandungan Dokumen Cetakan -->
+            <div class="p-8 space-y-8 print-layout" id="cetak-area">
+                
+                <!-- Kepala Surat Kerajaan (Timbul Sewaktu Cetak Sahaja) -->
+                <div class="hidden print:flex items-center justify-between border-b-2 border-slate-900 pb-5 mb-5">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-1 border border-slate-900 rounded">
+                            <i class="fa-solid fa-school text-2xl text-slate-800"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-extrabold uppercase tracking-tight">SKIM PINJAMAN BUKU TEKS (SPBT)</h2>
+                            <p class="text-[10px] text-slate-600 font-medium">Bahagian Buku Teks, Kementerian Pendidikan Malaysia</p>
+                        </div>
                     </div>
-                    <div>
-                        <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Kawasan & Penyelaras</span>
-                        <span id="resitLokasi" class="block text-slate-700"></span>
-                        <span class="block mt-1 font-semibold text-slate-800">Penyelaras: <span id="resitPenyelaras"></span></span>
-                        <span class="block text-xs text-slate-600">Tel: <span id="resitNoTelefon"></span></span>
-                        <span class="block text-xs text-slate-600">Emel: <span id="resitEmel"></span></span>
+                    <div class="text-right">
+                        <h2 class="text-xs font-black uppercase tracking-wider">Resit Pengesahan Rasmi</h2>
+                        <p class="text-[9px] text-slate-500 font-mono">Dokumen Dijana Sistem Komputer</p>
                     </div>
                 </div>
 
-                <!-- Aliran Dipilih -->
-                <div class="flex items-center justify-between px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl">
-                    <span class="text-xs font-bold text-indigo-900 uppercase">Skop Pilihan Aliran:</span>
-                    <span id="resitAliran" class="px-3 py-1 bg-indigo-650 text-white text-xs font-bold rounded-full text-center"></span>
+                <!-- Butiran Pengirim & Maklumat Penerima -->
+                <div class="border-b border-dashed border-slate-200 pb-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Maklumat Guru Penyelaras</h4>
+                        <p id="receipt-nama-guru" class="font-bold text-slate-800 mt-1.5">-</p>
+                        <p id="receipt-email" class="text-slate-600 font-mono text-xs">-</p>
+                        <p id="receipt-no-telefon" class="text-slate-600">-</p>
+                    </div>
+                    <div class="md:text-right">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pusat Maklumat Sekolah</h4>
+                        <p id="receipt-nama-sekolah" class="font-black text-brand-900 mt-1.5">-</p>
+                        <p class="text-slate-600">Kategori: <span id="receipt-kategori-sekolah" class="font-extrabold text-brand-800">-</span></p>
+                        <p id="receipt-ppd-negeri" class="text-slate-600">-</p>
+                    </div>
                 </div>
 
-                <!-- Senarai Buku Dipesan dengan Kolum Penerimaan -->
+                <!-- Ringkasan Kuantiti Mengikut Aliran -->
                 <div>
-                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Butiran Buku Teks</h5>
-                    <p class="text-[10px] text-slate-500 italic mb-3">* Sila cetak rumusan ini untuk ditandatangani oleh Guru Besar sebelum difailkan.</p>
-                    <div class="border border-slate-150 rounded-xl overflow-hidden">
+                    <h3 class="text-sm font-extrabold text-slate-800 mb-4 flex items-center">
+                        <span class="w-1.5 h-4 bg-emerald-600 rounded-full mr-2"></span>
+                        Ringkasan Bekalan Terbitan Baharu
+                    </h3>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="p-3 bg-white rounded-lg shadow-sm border border-slate-150">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Aliran Perdana</p>
+                            <p id="receipt-summary-perdana" class="text-xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="p-3 bg-white rounded-lg shadow-sm border border-slate-150">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Aliran Pend. Khas</p>
+                            <p id="receipt-summary-khas" class="text-xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="p-3 bg-white rounded-lg shadow-sm border border-slate-150">
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Format Braille</p>
+                            <p id="receipt-summary-braille" class="text-xl font-black text-slate-800">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Butiran Item yang Dipesan sahaja -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Lampiran Butiran Item Pesanan:</h4>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden max-h-96 overflow-y-auto print:max-h-none print:overflow-visible print:border-slate-300">
                         <table class="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
-                                    <th class="py-2.5 px-3 font-bold">Kod & Judul Buku</th>
-                                    <th class="py-2.5 px-3 font-bold text-center">Format</th>
-                                    <th class="py-2.5 px-3 font-bold text-center">Pesanan</th>
-                                    <th class="py-2.5 px-3 font-bold text-center border-l border-r border-slate-200 bg-amber-50 text-amber-900 whitespace-nowrap">Terima (Fizikal)</th>
-                                    <th class="py-2.5 px-3 font-bold text-center bg-amber-50 text-amber-900 whitespace-nowrap">Tarikh Terima</th>
+                                <tr class="bg-slate-100 text-slate-800 font-bold border-b border-slate-200">
+                                    <th class="p-3 w-28">Kod Buku</th>
+                                    <th class="p-3 w-28">Aliran</th>
+                                    <th class="p-3">Judul Buku Teks / Aktiviti</th>
+                                    <th class="p-3 text-center w-28">Kuantiti</th>
                                 </tr>
                             </thead>
-                            <tbody id="resitJadualBuku">
-                                <!-- Ditambah secara dinamik -->
+                            <tbody id="receipt-tbody" class="divide-y divide-slate-150">
+                                <!-- Data item diletakkan oleh JavaScript -->
                             </tbody>
-                            <tfoot>
-                                <tr class="bg-slate-100 font-bold text-slate-900 border-t border-slate-200">
-                                    <td colspan="2" class="py-3 px-3 text-right">Jumlah Naskhah Keseluruhan:</td>
-                                    <td id="resitJumlahKuantiti" class="py-3 px-3 text-center text-blue-700 text-sm font-extrabold"></td>
-                                    <td colspan="2" class="bg-slate-50 border-l border-slate-200"></td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>
 
-                <!-- Ruangan Pengesahan Sekolah (Tandatangan & Cop) -->
-                <div class="border-t border-slate-200 pt-6 mt-6">
-                    <h5 class="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 text-center">RUANGAN PENGESAHAN SEKOLAH</h5>
-                    <p class="text-[11px] text-slate-500 text-center leading-relaxed mb-6">
-                        Saya mengesahkan bahawa senarai permohonan buku teks terbitan baharu di atas adalah benar and mengikut unjuran enrolmen murid yang tepat bagi sesi persekolahan akan datang.
-                    </p>
-                    <div class="grid grid-cols-2 gap-8 text-xs text-slate-700 mt-4">
-                        <div class="text-left">
-                            <div class="border-b border-slate-400 h-16 mb-2"></div>
-                            <strong>Tandatangan Penyelaras SPBT</strong><br/>
-                            <span class="text-[11px]">Nama: <span id="resitPenyelarasCop"></span></span><br/>
-                            <span class="text-[11px]">Tarikh: ____________________</span>
-                        </div>
-                        <div class="text-left">
-                            <div class="border-b border-slate-400 h-16 mb-2"></div>
-                            <strong>Tandatangan & Cop Pengesah</strong><br/>
-                            <span class="text-[11px]">(Guru Besar / Pengetua)</span><br/>
-                            <span class="text-[11px]">Tarikh: ____________________</span>
-                        </div>
+                <!-- Footer Kelulusan / Akuan -->
+                <div class="pt-6 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 gap-4">
+                    <p id="receipt-tarikh">Tarikh Rekod: -</p>
+                    <p class="font-mono text-[10px] bg-slate-100 text-slate-600 px-3 py-1 rounded-full uppercase">Sistem Rujukan ID: <span id="receipt-id-rujukan">...</span></p>
+                </div>
+
+                <!-- Blok Tandatangan (Hanya Sewaktu Cetak) -->
+                <div class="hidden print:grid grid-cols-2 gap-10 pt-16 text-center text-xs">
+                    <div>
+                        <div class="w-48 border-b border-slate-500 mx-auto h-12"></div>
+                        <p class="mt-2 font-bold uppercase">Tandatangan & Cop Guru Penyelaras</p>
+                        <p class="text-slate-500">Tarikh: .......................................</p>
                     </div>
+                    <div>
+                        <div class="w-48 border-b border-slate-500 mx-auto h-12"></div>
+                        <p class="mt-2 font-bold uppercase">Pengesahan Guru Besar / Pengetua</p>
+                        <p class="text-slate-500">Tarikh: .......................................</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Butang Tamat Sesi dan Pengeditan -->
+            <div class="bg-slate-50 p-6 border-t border-slate-150 flex flex-col md:flex-row gap-4 justify-between items-center no-print">
+                <button 
+                    type="button"
+                    onclick="setSesiBaharu()"
+                    class="w-full md:w-auto bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl hover:bg-slate-300 transition-all text-sm"
+                >
+                    Log Keluar / Sesi Baharu
+                </button>
+
+                <div class="flex w-full md:w-auto gap-3">
+                    <button 
+                        type="button"
+                        onclick="kembaliKeLangkah(3)"
+                        class="flex-1 md:flex-none bg-brand-800 text-white font-bold px-6 py-3 rounded-xl hover:bg-brand-900 transition-all flex items-center justify-center space-x-1.5 text-sm"
+                    >
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit Semula</span>
+                    </button>
+
+                    <button 
+                        type="button"
+                        onclick="window.print()"
+                        class="flex-1 md:flex-none bg-emerald-700 text-white font-bold px-8 py-3 rounded-xl hover:bg-emerald-800 transition-all shadow-md flex items-center justify-center space-x-2 text-sm"
+                    >
+                        <i class="fa-solid fa-print"></i>
+                        <span>Cetak Resit</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Modal Footer -->
-            <div class="bg-slate-50 border-t border-slate-100 px-6 py-4 flex flex-col sm:flex-row gap-3 justify-end items-center">
-                <button type="button" onclick="cetakResit()" class="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-800 px-5 py-2.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition-colors">
-                    <i class="fa-solid fa-print"></i> Cetak Salinan
+        </section>
+
+    </main>
+
+    <!-- MODAL TETAPAN API BACKEND (GOOGLE APPS SCRIPT) -->
+    <div id="modal-tetapan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 no-print">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp">
+            <div class="bg-brand-950 p-5 text-white flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-cloud text-amber-400"></i>
+                    <h3 class="font-extrabold text-sm md:text-base">Tetapan Aplikasi Awan SPBT</h3>
+                </div>
+                <button onclick="tutupModalTetapan()" class="text-slate-300 hover:text-white text-xl font-bold focus:outline-none">&times;</button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Aplikasi ini menyokong penyimpanan pangkalan data masa-nyata. Anda boleh memasukkan URL Web App Google Apps Script anda di bawah bagi membolehkan penghantaran data terus ke Google Sheets dan mengaktifkan penghantaran e-mel pengesahan automatik.
+                </p>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">URL Google Apps Script (API Web App)</label>
+                    <input 
+                        type="url" 
+                        id="input-api-url"
+                        placeholder="https://script.google.com/macros/s/.../exec"
+                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-mono"
+                    />
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-start space-x-2 text-amber-900 text-[11px] leading-relaxed">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>
+                    <span>Sistem akan menggunakan storan pelayar lokal (*Local Storage*) sekiranya ruangan URL di atas dibiarkan kosong.</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-150 flex justify-end space-x-3">
+                <button onclick="tutupModalTetapan()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-all">
+                    Batal
                 </button>
-                <button type="button" onclick="hantarPesananKeGoogleSheets()" id="btnHantarRasmi" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-colors">
-                    <span id="spinnerHantar" class="hidden animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                    <i class="fa-solid fa-paper-plane" id="ikonHantar"></i> <span id="teksButangHantar">Hantar & Emel Salinan</span>
+                <button onclick="simpanTetapanApi()" class="bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all shadow-sm">
+                    Simpan Tetapan
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION CONTAINER -->
-    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full"></div>
+    <!-- NOTIFIKASI TOAST DIRI -->
+    <div id="toast-box" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 flex items-center p-4 rounded-xl shadow-2xl text-white max-w-sm no-print">
+        <div id="toast-icon" class="mr-3 text-lg"></div>
+        <span id="toast-message" class="text-xs md:text-sm font-semibold leading-normal"></span>
+    </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- FOOTER UTAMA -->
+    <footer class="bg-slate-900 text-slate-500 py-8 border-t border-slate-800 text-xs text-center no-print">
+        <div class="max-w-7xl mx-auto px-4 space-y-2">
+            <p class="font-bold text-slate-300">Hak Cipta Terpelihara © 2026 Skim Pinjaman Buku Teks (SPBT) Malaysia.</p>
+            <p class="text-[10px] leading-relaxed">Aplikasi portal ini dibangunkan khas untuk memudahkan pengisian pengumpulan pesanan pembekalan buku teks edisi baharu Tahun 1 di semua peringkat sekolah rendah kerajaan dan swasta seluruh negara.</p>
+            <div class="flex justify-center space-x-4 pt-2 text-brand-400 font-bold">
+                <a href="#" class="hover:underline">Dasar Keselamatan</a>
+                <span>•</span>
+                <a href="#" class="hover:underline">Syarat Layanan</a>
+                <span>•</span>
+                <a href="#" class="hover:underline">Hubungi Kami</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ======================= JAVASCRIPT LOGIK SISTEM ======================= -->
     <script>
-        // URL Google Apps Script Aplikasi Web
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbza25_WPR2_LpQEBoTgdBhwqLvACR2fTgiby2zNTt3bB_x48CJplJleyItjM-AOioua/exec"; 
+        // =========================================================================
+        // ⚠️ URL GOOGLE APPS SCRIPT ANDA DIBAWAH KINI AKTIF SEBAGAI SATU-SATUNYA PANGKALAN DATA
+        // =========================================================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcod6dA02TJrfPzmz4mZT6qVqTJsjSdDcV9B76qOQEV7RsXQuwyZ11tcJzpdZsMieK/exec"; 
+        // =========================================================================
 
-        // PANGKALAN DATA JUDUL BUKU TEKS TERBITAN BAHARU TAHUN 1 (ALIRAN PERDANA) - TIADA HARGA
-        const databaseBukuPerdana = {
-            "SEKOLAH KEBANGSAAN (SK)": [
-                { kod: "BA061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
-                { kod: "BT061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
-                { kod: "BT481003", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1" },
-                { kod: "BA211030", tajuk: "BAHASA ARAB TAHUN 1 (BA)" },
-                { kod: "BT211030", tajuk: "BAHASA ARAB TAHUN 1 (BT)" },
-                { kod: "BA031002", tajuk: "BAHASA CINA TAHUN 1 SK (BA)" },
-                { kod: "BT031003", tajuk: "BAHASA CINA TAHUN 1 SK (BT)" },
-                { kod: "BA201003", tajuk: "BAHASA IBAN TAHUN 1 (BA)" },
-                { kod: "BT201006", tajuk: "BAHASA IBAN TAHUN 1 (BT)" },
-                { kod: "BA021001", tajuk: "BAHASA INGGERIS TAHUN 1 (BA)" },
-                { kod: "BT021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BT)" },
-                { kod: "BA221002", tajuk: "BAHASA KADAZANDUSUN TAHUN 1 (BA)" },
-                { kod: "BT221004", tajuk: "BAHASA KADAZANDUSUN TAHUN 1 (BT)" },
-                { kod: "BA011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BA)" },
-                { kod: "BT011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BT)" },
-                { kod: "BA231002", tajuk: "BAHASA SEMAI TAHUN 1 (BA)" },
-                { kod: "BT231004", tajuk: "BAHASA SEMAI TAHUN 1 (BT)" },
-                { kod: "BA041002", tajuk: "BAHASA TAMIL TAHUN 1 SK (BA)" },
-                { kod: "BT041003", tajuk: "BAHASA TAMIL TAHUN 1 SK (BT)" },
-                { kod: "BA081005", tajuk: "MATEMATIK TAHUN 1 SK (BA)" },
-                { kod: "BT081007", tajuk: "MATEMATIK TAHUN 1 SK (BT)" },
-                { kod: "BA081006", tajuk: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
-                { kod: "BT081008", tajuk: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
-                { kod: "BA101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
-                { kod: "BT101006", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
-                { kod: "BA121001", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
-                { kod: "BT121062", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" },
-                { kod: "BA111001", tajuk: "PENDIDIKAN MORAL TAHUN 1 SK (BA)" },
-                { kod: "BT111021", tajuk: "PENDIDIKAN MORAL TAHUN 1 SK (BT)" }
+        // Pangkalan Data Buku Teks mengikut Kategori Sekolah
+        const SENARAI_BUKU_PERDANA = {
+            SK: [
+                { code: "BA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
+                { code: "BT061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
+                { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
+                { code: "BA211030", title: "BAHASA ARAB TAHUN 1 (BA)" },
+                { code: "BT211030", title: "BAHASA ARAB TAHUN 1 (BT)" },
+                { code: "BA031002", title: "BAHASA CINA TAHUN 1 SK (BA)" },
+                { code: "BT031003", title: "BAHASA CINA TAHUN 1 SK (BT)" },
+                { code: "BA201003", title: "BAHASA IBAN TAHUN 1 (BA)" },
+                { code: "BT201006", title: "BAHASA IBAN TAHUN 1 (BT)" },
+                { code: "BA021001", title: "BAHASA INGGERIS TAHUN 1 (BA)" },
+                { code: "BT021005", title: "BAHASA INGGERIS TAHUN 1 (BT)" },
+                { code: "BA221002", title: "BAHASA KADAZANDUSUN TAHUN 1 (BA)" },
+                { code: "BT221004", title: "BAHASA KADAZANDUSUN TAHUN 1 (BT)" },
+                { code: "BA011123", title: "BAHASA MELAYU TAHUN 1 SK (BA)" },
+                { code: "BT011123", title: "BAHASA MELAYU TAHUN 1 SK (BT)" },
+                { code: "BA231002", title: "BAHASA SEMAI TAHUN 1 (BA)" },
+                { code: "BT231004", title: "BAHASA SEMAI TAHUN 1 (BT)" },
+                { code: "BA041002", title: "BAHASA TAMIL TAHUN 1 SK (BA)" },
+                { code: "BT041003", title: "BAHASA TAMIL TAHUN 1 SK (BT)" },
+                { code: "BA081005", title: "MATEMATIK TAHUN 1 SK (BA)" },
+                { code: "BT081007", title: "MATEMATIK TAHUN 1 SK (BT)" },
+                { code: "BA081006", title: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
+                { code: "BT081008", title: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
+                { code: "BA101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
+                { code: "BT101006", title: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
+                { code: "BA121001", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
+                { code: "BT121062", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" },
+                { code: "BA111001", title: "PENDIDIKAN MORAL TAHUN 1 SK (BA)" },
+                { code: "BT111021", title: "PENDIDIKAN MORAL TAHUN 1 SK (BT)" }
             ],
-            "SEKOLAH JENIS KEBANGSAAN CINA (SJKC)": [
-                { kod: "DA061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKC (BA)" },
-                { kod: "DT061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKC (BT)" },
-                { kod: "BT481003", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1" },
-                { kod: "BA211030", tajuk: "BAHASA ARAB TAHUN 1 (BA)" },
-                { kod: "BT211030", tajuk: "BAHASA ARAB TAHUN 1 (BT)" },
-                { kod: "DT031004", tajuk: "BAHASA CINA TAHUN 1 SJKC (BT)" },
-                { kod: "DA031003", tajuk: "BAHASA CINA TAHUN 1 SJKC (BA)" },
-                { kod: "BA021001", tajuk: "BAHASA INGGERIS TAHUN 1 (BA)" },
-                { kod: "BT021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BT)" },
-                { kod: "AA011225", tajuk: "BAHASA MELAYU TAHUN 1 SJK (BA)" },
-                { kod: "AT011226", tajuk: "BAHASA MELAYU TAHUN 1 SJK (BT)" },
-                { kod: "DA081003", tajuk: "MATEMATIK TAHUN 1 SJKC (BA)" },
-                { kod: "DT081005", tajuk: "MATEMATIK TAHUN 1 SJKC (BT)" },
-                { kod: "BA081006", tajuk: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
-                { kod: "BT081008", tajuk: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
-                { kod: "BA101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
-                { kod: "BT101006", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
-                { kod: "DA121001", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SJKC (BA)" },
-                { kod: "DT121002", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SJKC (BT)" },
-                { kod: "DA111001", tajuk: "PENDIDIKAN MORAL TAHUN 1 SJKC (BA)" },
-                { kod: "DT111002", tajuk: "PENDIDIKAN MORAL TAHUN 1 SJKC (BT)" }
+            SJKC: [
+                { code: "DA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKC (BA)" },
+                { code: "DT061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKC (BT)" },
+                { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
+                { code: "BA211030", title: "BAHASA ARAB TAHUN 1 (BA)" },
+                { code: "BT211030", title: "BAHASA ARAB TAHUN 1 (BT)" },
+                { code: "DT031004", title: "BAHASA CINA TAHUN 1 SJKC (BT)" },
+                { code: "DA031003", title: "BAHASA CINA TAHUN 1 SJKC (BA)" },
+                { code: "BA021001", title: "BAHASA INGGERIS TAHUN 1 (BA)" },
+                { code: "BT021005", title: "BAHASA INGGERIS TAHUN 1 (BT)" },
+                { code: "AA011225", title: "BAHASA MELAYU TAHUN 1 SJK (BA)" },
+                { code: "AT011226", title: "BAHASA MELAYU TAHUN 1 SJK (BT)" },
+                { code: "DA081003", title: "MATEMATIK TAHUN 1 SJKC (BA)" },
+                { code: "DT081005", title: "MATEMATIK TAHUN 1 SJKC (BT)" },
+                { code: "BA081006", title: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
+                { code: "BT081008", title: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
+                { code: "BA101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
+                { code: "BT101006", title: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
+                { code: "DA121001", title: "PENDIDIKAN JASMANI TAHUN 1 SJKC (BA)" },
+                { code: "DT121002", title: "PENDIDIKAN JASMANI TAHUN 1 SJKC (BT)" },
+                { code: "DA111001", title: "PENDIDIKAN MORAL TAHUN 1 SJKC (BA)" },
+                { code: "DT111002", title: "PENDIDIKAN MORAL TAHUN 1 SJKC (BT)" }
             ],
-            "SEKOLAH JENIS KEBANGSAAN TAMIL (SJKT)": [
-                { kod: "EA061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKT (BA)" },
-                { kod: "ET061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKT (BT)" },
-                { kod: "BT481003", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1" },
-                { kod: "BA021001", tajuk: "BAHASA INGGERIS TAHUN 1 (BA)" },
-                { kod: "BT021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BT)" },
-                { kod: "AA011225", tajuk: "BAHASA MELAYU TAHUN 1 SJK (BA)" },
-                { kod: "AT011226", tajuk: "BAHASA MELAYU TAHUN 1 SJK (BT)" },
-                { kod: "EA041003", tajuk: "BAHASA TAMIL TAHUN 1 SJKT (BA)" },
-                { kod: "ET041004", tajuk: "BAHASA TAMIL TAHUN 1 SJKT (BT)" },
-                { kod: "EA081003", tajuk: "MATEMATIK TAHUN 1 SJKT (BA)" },
-                { kod: "ET081005", tajuk: "MATEMATIK TAHUN 1 SJKT (BT)" },
-                { kod: "BA081006", tajuk: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
-                { kod: "BT081008", tajuk: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
-                { kod: "BA101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
-                { kod: "BT101006", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
-                { kod: "EA121001", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SJKT (BA)" },
-                { kod: "ET121002", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SJKT (BT)" },
-                { kod: "EA111001", tajuk: "PENDIDIKAN MORAL TAHUN 1 SJKT (BA)" },
-                { kod: "ET111002", tajuk: "PENDIDIKAN MORAL TAHUN 1 SJKT (BT)" }
+            SJKT: [
+                { code: "EA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKT (BA)" },
+                { code: "ET061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SJKT (BT)" },
+                { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
+                { code: "BA021001", title: "BAHASA INGGERIS TAHUN 1 (BA)" },
+                { code: "BT021005", title: "BAHASA INGGERIS TAHUN 1 (BT)" },
+                { code: "AA011225", title: "BAHASA MELAYU TAHUN 1 SJK (BA)" },
+                { code: "AT011226", title: "BAHASA MELAYU TAHUN 1 SJK (BT)" },
+                { code: "EA041003", title: "BAHASA TAMIL TAHUN 1 SJKT (BA)" },
+                { code: "ET041004", title: "BAHASA TAMIL TAHUN 1 SJKT (BT)" },
+                { code: "EA081003", title: "MATEMATIK TAHUN 1 SJKT (BA)" },
+                { code: "ET081005", title: "MATEMATIK TAHUN 1 SJKT (BT)" },
+                { code: "BA081006", title: "MATHEMATICS YEAR 1 (ACTIVITY BOOK) (DLP)" },
+                { code: "BT081008", title: "MATHEMATICS YEAR 1 (TEXTBOOK) (DLP)" },
+                { code: "BA101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
+                { code: "BT101006", title: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
+                { code: "EA121001", title: "PENDIDIKAN JASMANI TAHUN 1 SJKT (BA)" },
+                { code: "ET121002", title: "PENDIDIKAN JASMANI TAHUN 1 SJKT (BT)" },
+                { code: "EA111001", title: "PENDIDIKAN MORAL TAHUN 1 SJKT (BA)" },
+                { code: "ET111002", title: "PENDIDIKAN MORAL TAHUN 1 SJKT (BT)" }
             ],
-            "SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)": [
-                { kod: "BA061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
-                { kod: "BT061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
-                { kod: "BT481003", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1" },
-                { kod: "BA211030", tajuk: "BAHASA ARAB TAHUN 1 (BA)" },
-                { kod: "BT211030", tajuk: "BAHASA ARAB TAHUN 1 (BT)" },
-                { kod: "BA021001", tajuk: "BAHASA INGGERIS TAHUN 1 (BA)" },
-                { kod: "BT021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BT)" },
-                { kod: "BA011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BA)" },
-                { kod: "BT011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BT)" },
-                { kod: "BA081005", tajuk: "MATEMATIK TAHUN 1 SK (BA)" },
-                { kod: "BT081007", tajuk: "MATEMATIK TAHUN 1 SK (BT)" },
-                { kod: "BA101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
-                { kod: "BT101006", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
-                { kod: "BA121001", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
-                { kod: "BT121062", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" }
-            ],
-            "SEKOLAH RENDAH AGAMA (SRA)": [
-                { kod: "BA061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
-                { kod: "BT061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
-                { kod: "BT481003", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1" },
-                { kod: "BA211030", tajuk: "BAHASA ARAB TAHUN 1 (BA)" },
-                { kod: "BT211030", tajuk: "BAHASA ARAB TAHUN 1 (BT)" },
-                { kod: "BA021001", tajuk: "BAHASA INGGERIS TAHUN 1 (BA)" },
-                { kod: "BT021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BT)" },
-                { kod: "BA011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BA)" },
-                { kod: "BT011123", tajuk: "BAHASA MELAYU TAHUN 1 SK (BT)" },
-                { kod: "BA081005", tajuk: "MATEMATIK TAHUN 1 SK (BA)" },
-                { kod: "BT081007", tajuk: "MATEMATIK TAHUN 1 SK (BT)" },
-                { kod: "BA101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
-                { kod: "BT101006", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
-                { kod: "BA121001", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
-                { kod: "BT121062", tajuk: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" }
+            SABK: [
+                { code: "BA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
+                { code: "BT061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
+                { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
+                { code: "BA211030", title: "BAHASA ARAB TAHUN 1 (BA)" },
+                { code: "BT211030", title: "BAHASA ARAB TAHUN 1 (BT)" },
+                { code: "BA021001", title: "BAHASA INGGERIS TAHUN 1 (BA)" },
+                { code: "BT021005", title: "BAHASA INGGERIS TAHUN 1 (BT)" },
+                { code: "BA011123", title: "BAHASA MELAYU TAHUN 1 SK (BA)" },
+                { code: "BT011123", title: "BAHASA MELAYU TAHUN 1 SK (BT)" },
+                { code: "BA081005", title: "MATEMATIK TAHUN 1 SK (BA)" },
+                { code: "BT081007", title: "MATEMATIK TAHUN 1 SK (BT)" },
+                { code: "BA101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
+                { code: "BT101006", title: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
+                { code: "BA121001", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
+                { code: "BT121062", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" }
             ]
         };
 
-        // PANGKALAN DATA JUDUL BUKU TEKS PENDIDIKAN KHAS (STANDARD)
-        const databaseBukuKhasStandard = {
-            "SEKOLAH KEBANGSAAN (SK)": [
-                { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK081002", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK081003", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK721001", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
-                { kod: "BTK721003", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
-                { kod: "BAK101003", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK101004", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK141001", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK141002", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK111002", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK111003", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
-                { kod: "BTK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" }
+        const SENARAI_BUKU_KHAS = {
+            SK: [
+                { code: "BAK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK081002", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK081003", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK721001", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
+                { code: "BTK721003", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
+                { code: "BAK101003", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK101004", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK141001", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK141002", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK111002", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK111003", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
+                { code: "BTK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" }
             ],
-            "SEKOLAH JENIS KEBANGSAAN CINA (SJKC)": [
-                { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK081002", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK081003", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK721001", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
-                { kod: "BTK721003", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
-                { kod: "BAK101003", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK101004", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK141001", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK141002", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK111002", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK111003", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
-                { kod: "BTK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" },
-                { kod: "DTK031001", tajuk: "BAHASA CINA (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "DAK031001", tajuk: "BAHASA CINA (PENDIDIKAN KHAS) TAHUN 1 (BA)" }
+            SJKC: [
+                { code: "BAK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK081002", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK081003", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK721001", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
+                { code: "BTK721003", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
+                { code: "BAK101003", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK101004", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK141001", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK141002", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK111002", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK111003", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
+                { code: "BTK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" },
+                { code: "DTK031001", title: "BAHASA CINA (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "DAK031001", title: "BAHASA CINA (PENDIDIKAN KHAS) TAHUN 1 (BA)" }
             ],
-            "SEKOLAH JENIS KEBANGSAAN TAMIL (SJKT)": [
-                { kod: "BAK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK061001", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK021004", tajuk: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK011004", tajuk: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK081002", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
-                { kod: "BTK081003", tajuk: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "BAK721001", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
-                { kod: "BTK721003", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
-                { kod: "BAK101003", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK101004", tajuk: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK141001", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK141002", tajuk: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK111002", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
-                { kod: "BTK111003", tajuk: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
-                { kod: "BAK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
-                { kod: "BTK701002", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" },
-                { kod: "ETK041001", tajuk: "BAHASA TAMIL (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
-                { kod: "EAK041001", tajuk: "BAHASA TAMIL (PENDIDIKAN KHAS) TAHUN 1 (BA)" }
-            ],
-            "SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)": [],
-            "SEKOLAH RENDAH AGAMA (SRA)": []
+            SJKT: [
+                { code: "BAK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK021004", title: "BAHASA INGGERIS (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK011004", title: "BAHASA MELAYU (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK081002", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BA)" },
+                { code: "BTK081003", title: "MATEMATIK (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "BAK721001", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BA)" },
+                { code: "BTK721003", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BT)" },
+                { code: "BAK101003", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK101004", title: "PENDIDIKAN ISLAM PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK141001", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK141002", title: "PENDIDIKAN JASMANI PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK111002", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BA)" },
+                { code: "BTK111003", title: "PENDIDIKAN MORAL PENDIDIKAN KHAS TAHUN 1 (BT)" },
+                { code: "BAK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BA)" },
+                { code: "BTK701002", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BT)" },
+                { code: "ETK041001", title: "BAHASA TAMIL (PENDIDIKAN KHAS) TAHUN 1 (BT)" },
+                { code: "EAK041001", title: "BAHASA TAMIL (PENDIDIKAN KHAS) TAHUN 1 (BA)" }
+            ]
         };
 
-        // PANGKALAN DATA JUDUL BUKU TEKS BRAILLE (ALIRAN PENDIDIKAN KHAS)
-        const databaseBukuKhasBraille = [
-            { kod: "BTK061002", tajuk: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK211102", tajuk: "BAHASA ARAB TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK021005", tajuk: "BAHASA INGGERIS TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK011005", tajuk: "BAHASA MELAYU TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK081004", tajuk: "MATEMATIK TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK721004", tajuk: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK101005", tajuk: "PENDIDIKAN ISLAM TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK141003", tajuk: "PENDIDIKAN JASMANI TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK111004", tajuk: "PENDIDIKAN MORAL TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK701003", tajuk: "PENGURUSAN KEHIDUPAN TAHUN 1 (BUKU TEKS BRAILLE)" },
-            { kod: "BTK481103", tajuk: "ASAS BACAAN AL-QURAN TAHUN 1 (BUKU TEKS BRAILLE)" }
+        const SENARAI_BUKU_BRAILLE = [
+            { code: "BTK061002", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK211102", title: "BAHASA ARAB TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK021005", title: "BAHASA INGGERIS TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK011005", title: "BAHASA MELAYU TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK081004", title: "MATEMATIK TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK721004", title: "PENDIDIKAN ASAS INDIVIDU KETIDAKUPAYAAN PENGLIHATAN (PAIKUP) TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK141003", title: "PENDIDIKAN JASMANI TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK111004", title: "PENDIDIKAN MORAL TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK701003", title: "PENGURUSAN KEHIDUPAN TAHUN 1 (BUKU TEKS BRAILLE)" },
+            { code: "BTK481103", title: "ASAS BACAAN AL-QURAN TAHUN 1 (BUKU TEKS BRAILLE)" }
         ];
 
-        let emelSemasa = "";
-        let isKemaskiniMode = false;
-        let idPesananSemasa = "";
-        let aliranSemasa = "";
-        let isFormatBraille = false;
-        let troliPesanan = {}; 
+        // State Pengurusan Tempatan Halaman
+        const state = {
+            currentStep: 1,
+            email: "",
+            isExistingRecord: false,
+            sekolahInfo: {
+                negeri: "",
+                ppd: "",
+                kodSekolah: "",
+                namaSekolah: "",
+                kategoriSekolah: "",
+                namaGuru: "",
+                noTelefon: ""
+            },
+            pesananPerdana: {},
+            pesananKhas: {},
+            pesananBraille: {},
+            gunaKhas: false,
+            gunaBraille: false
+        };
 
-        // UTILITY HUBUNGAN AWAN (100% BEBAS CORS UNTUK SEMUA PERANTI MENGGUNAKAN TEKNIK JSONP GET)
-        function panggilAPIAwan(params, onSuccess, onError) {
-            if (!SCRIPT_URL || SCRIPT_URL.trim() === "" || SCRIPT_URL.includes("YOUR_SCRIPT_URL_HERE")) {
-                setTimeout(() => {
-                    if (onError) onError(new Error("Penyelaras belum mengkonfigurasi SCRIPT_URL Google Apps Script."));
-                }, 50);
-                return;
-            }
+        // Fungsi pembantu: Toast Notification
+        function tunjukToast(message, type = "success") {
+            const toastBox = document.getElementById("toast-box");
+            const toastIcon = document.getElementById("toast-icon");
+            const toastMessage = document.getElementById("toast-message");
 
-            const callbackName = "spbt_callback_" + Math.random().toString(36).substr(2, 9);
-            
-            // Timeout 25 saat untuk Apps Script bangun dari fasa tidur (Cold Start)
-            const timeoutTimer = setTimeout(() => {
-                cleanup();
-                if (onError) onError(new Error("Masa tamat sambungan awan (Timeout). Sila semak sambungan internet anda."));
-            }, 25000);
+            toastMessage.textContent = message;
 
-            function cleanup() {
-                clearTimeout(timeoutTimer);
-                const scriptEl = document.getElementById(callbackName);
-                if (scriptEl) {
-                    scriptEl.parentNode.removeChild(scriptEl);
-                }
-                delete window[callbackName];
-            }
-
-            // Daftarkan fungsi pemanggil balik secara global di skop pelayar web
-            window[callbackName] = function(data) {
-                cleanup();
-                if (data && data.error) {
-                    if (onError) onError(new Error(data.error));
-                } else {
-                    if (onSuccess) onSuccess(data);
-                }
-            };
-
-            let queryParts = [];
-            for (let key in params) {
-                queryParts.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
-            }
-            queryParts.push("callback=" + callbackName);
-            const finalUrl = SCRIPT_URL + "?" + queryParts.join("&");
-
-            const script = document.createElement('script');
-            script.id = callbackName;
-            script.src = finalUrl;
-            script.onerror = function() {
-                cleanup();
-                if (onError) onError(new Error("Ralat sambungan pelayan awan. Sila pastikan Apps Script dideploy sebagai 'Anyone'."));
-            };
-
-            document.body.appendChild(script);
-        }
-
-        // TUKAR KATEGORI SEKOLAH (BERSIHKAN PESANAN LAMA JIKA ADA PERTUKARAN KATEGORI)
-        function tukaranKategoriSekolah() {
-            const kat = document.getElementById('kategoriSekolah').value;
-            if (kat) {
-                if (Object.keys(troliPesanan).length > 0) {
-                    tunjukkanToast("Kategori Sekolah diubah. Senarai perolehan sebelum ini telah dibersihkan.", "info");
-                }
-                troliPesanan = {};
-                kemaskiniTroliRingkasan();
-                
-                if (aliranSemasa === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
-                    aliranSemasa = "";
-                    document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
-                    document.getElementById('katalogKawasan').classList.add('hidden');
-                    tunjukkanToast("Aliran Pendidikan Khas tidak ditawarkan bagi kategori sekolah SABK / SRA.", "error");
-                }
-
-                if (aliranSemasa) {
-                    janaKatalogBuku();
-                }
-            }
-        }
-
-        // 1. PROSES SARINGAN EMEL SECARA MASA-NYATA (JSONP CLOUD STANDARD)
-        function prosesSaringanEmel() {
-            const inputEmel = document.getElementById('emelSaringan').value.trim().toLowerCase();
-            
-            if (!inputEmel || !inputEmel.includes('@') || !inputEmel.includes('.')) {
-                tunjukkanToast("Sila masukkan alamat e-mel yang sah.", "error");
-                return;
-            }
-
-            const btnSaringan = document.getElementById('btnHantarSaringan');
-            const spinner = document.getElementById('spinnerSaringan');
-            const teksSaringan = document.getElementById('teksSaringan');
-
-            btnSaringan.disabled = true;
-            spinner.classList.remove('hidden');
-            teksSaringan.classList.add('opacity-40');
-
-            emelSemasa = inputEmel;
-
-            function bukaBorang(rekodDitemui) {
-                const lencana = document.getElementById('lencanaModBorang');
-                const tajukLec = document.getElementById('tajukLencana');
-                const subLec = document.getElementById('subLencana');
-                const ikonLec = document.getElementById('ikonLencana');
-
-                if (rekodDitemui) {
-                    isKemaskiniMode = true;
-                    idPesananSemasa = rekodDitemui.id_pesanan;
-                    
-                    document.getElementById('kodSekolah').value = rekodDitemui.kod_sekolah || "";
-                    document.getElementById('namaSekolah').value = rekodDitemui.nama_sekolah || "";
-                    document.getElementById('negeri').value = rekodDitemui.negeri || "";
-                    document.getElementById('daerah').value = rekodDitemui.daerah || "";
-                    document.getElementById('kategoriSekolah').value = rekodDitemui.kategori_sekolah || "";
-                    document.getElementById('penyelaras').value = rekodDitemui.penyelaras || "";
-                    document.getElementById('noTelefon').value = rekodDitemui.no_telefon || "";
-
-                    troliPesanan = rekodDitemui.pesanan || {};
-
-                    lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-amber-50 border border-amber-200 text-amber-800";
-                    tajukLec.innerText = "MOD KEMASKINI PESANAN (AWAN)";
-                    subLec.innerText = `Menyunting pesanan rasmi Google Sheets (ID Pesanan: ${idPesananSemasa})`;
-                    ikonLec.className = "p-2 rounded-lg bg-amber-600 text-white text-base fa-solid fa-pen-to-square";
-
-                    tunjukkanToast("Rekod pesanan sedia ada dikesan! Profil anda dimuatkan.", "success");
-                    
-                    isFormatBraille = Object.keys(troliPesanan).some(kod => kod.startsWith("BTK") && databaseBukuKhasBraille.some(b => b.kod === kod));
-                    document.getElementById('toggleBraille').checked = isFormatBraille;
-                    
-                    let adaPerdana = Object.keys(troliPesanan).some(kod => !kod.startsWith("BAK") && !kod.startsWith("BTK") && !kod.startsWith("DTK") && !kod.startsWith("DAK") && !kod.startsWith("ETK") && !kod.startsWith("EAK"));
-                    let adaKhas = Object.keys(troliPesanan).some(kod => kod.startsWith("BAK") || kod.startsWith("BTK") || kod.startsWith("DTK") || kod.startsWith("DAK") || kod.startsWith("ETK") || kod.startsWith("EAK"));
-                    
-                    if (adaPerdana) {
-                        selectAliran('perdana');
-                    } else if (adaKhas) {
-                        selectAliran('khas');
-                    }
-                } else {
-                    isKemaskiniMode = false;
-                    idPesananSemasa = "";
-                    troliPesanan = {};
-                    isFormatBraille = false;
-                    document.getElementById('toggleBraille').checked = false;
-                    
-                    document.getElementById('kodSekolah').value = "";
-                    document.getElementById('namaSekolah').value = "";
-                    document.getElementById('negeri').value = "";
-                    document.getElementById('daerah').value = "";
-                    document.getElementById('kategoriSekolah').value = "";
-                    document.getElementById('penyelaras').value = "";
-                    document.getElementById('noTelefon').value = "";
-
-                    lencana.className = "p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner bg-green-50 border border-green-200 text-green-800";
-                    tajukLec.innerText = "MOD PESANAN BAHARU (INTEGRASI AWAN)";
-                    subLec.innerText = "Sila isi profil sekolah and pilih aliran buku teks di bawah.";
-                    ikonLec.className = "p-2 rounded-lg bg-green-600 text-white text-base fa-solid fa-circle-plus";
-
-                    tunjukkanToast("E-mel sedia digunakan untuk pendaftaran baharu.", "info");
-                    
-                    document.getElementById('katalogKawasan').classList.add('hidden');
-                    document.getElementById('btnAliranPerdana').classList.remove('border-blue-500', 'bg-blue-50/20');
-                    document.getElementById('btnAliranKhas').classList.remove('border-amber-500', 'bg-amber-50/20');
-                }
-
-                document.getElementById('teksEmelAktif').innerHTML = `<i class="fa-solid fa-user-check"></i> Penyelaras: <strong>${emelSemasa}</strong>`;
-
-                const borangUtama = document.getElementById('kawasanBorangUtama');
-                borangUtama.classList.remove('hidden');
-                setTimeout(() => {
-                    borangUtama.classList.remove('opacity-0');
-                }, 50);
-
-                const l0 = document.getElementById('kawasanLangkah0');
-                l0.classList.add('opacity-40');
-                document.getElementById('emelSaringan').disabled = true;
-                
-                btnSaringan.disabled = false;
-                spinner.classList.add('hidden');
-                teksSaringan.classList.remove('opacity-40');
-                
-                kemaskiniTroliRingkasan();
-            }
-
-            panggilAPIAwan({
-                action: "semak_emel",
-                emel: emelSemasa
-            }, function(res) {
-                btnSaringan.disabled = false;
-                spinner.classList.add('hidden');
-                teksSaringan.classList.remove('opacity-40');
-                
-                if (res && res.found) {
-                    bukaBorang(res);
-                } else {
-                    bukaBorang(null);
-                }
-            }, function(err) {
-                btnSaringan.disabled = false;
-                spinner.classList.add('hidden');
-                teksSaringan.classList.remove('opacity-40');
-                
-                tunjukkanToast("Gagal memuatkan rekod Google Sheets. Sila pastikan pautan SCRIPT_URL betul dan di-deploy sebagai 'Anyone'.", "error");
-            });
-        }
-
-        // MEMILIH ALIRAN UTAMA 
-        function selectAliran(aliran) {
-            const kat = document.getElementById('kategoriSekolah').value;
-            if (!kat) {
-                tunjukkanToast("Sila pilih Kategori Sekolah di Kluster 2 terlebih dahulu.", "error");
-                document.getElementById('kategoriSekolah').scrollIntoView({ behavior: 'smooth' });
-                return;
-            }
-
-            if (aliran === 'khas' && (kat === 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' || kat === 'SEKOLAH RENDAH AGAMA (SRA)')) {
-                tunjukkanToast("Tiada pesanan Aliran Pendidikan Khas ditawarkan bagi kategori sekolah SABK / SRA.", "error");
-                return;
-            }
-
-            aliranSemasa = aliran;
-            
-            const btnPerdana = document.getElementById('btnAliranPerdana');
-            const btnKhas = document.getElementById('btnAliranKhas');
-            const filterKhasBox = document.getElementById('filterKhasBox');
-            const katalogKawasan = document.getElementById('katalogKawasan');
-
-            if (aliran === 'perdana') {
-                btnPerdana.classList.add('border-blue-500', 'bg-blue-50/20');
-                btnKhas.classList.remove('border-amber-500', 'bg-amber-50/20');
-                filterKhasBox.classList.add('hidden');
-                tunjukkanToast(`Katalog Aliran Perdana untuk ${kat} sedia untuk diisi.`, 'info');
+            // Set visual mengikut jenis toast
+            if (type === "success") {
+                toastBox.className = "fixed top-4 right-4 z-50 flex items-center p-4 rounded-xl shadow-2xl text-white max-w-sm bg-emerald-600 transition-all duration-300 no-print";
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else if (type === "error") {
+                toastBox.className = "fixed top-4 right-4 z-50 flex items-center p-4 rounded-xl shadow-2xl text-white max-w-sm bg-rose-600 transition-all duration-300 no-print";
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
             } else {
-                btnKhas.classList.add('border-amber-500', 'bg-amber-50/20');
-                btnPerdana.classList.remove('border-blue-500', 'bg-blue-50/20');
-                filterKhasBox.classList.remove('hidden');
-                tunjukkanToast('Katalog Pendidikan Khas sedia untuk diisi. Pilih format Braille jika perlu.', 'info');
+                toastBox.className = "fixed top-4 right-4 z-50 flex items-center p-4 rounded-xl shadow-2xl text-white max-w-sm bg-blue-600 transition-all duration-300 no-print";
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
             }
 
-            katalogKawasan.classList.remove('hidden');
-            janaKatalogBuku();
-            kemaskiniTroliRingkasan();
-        }
+            // Animasi masuk
+            toastBox.style.transform = "translateY(0)";
+            toastBox.style.opacity = "1";
 
-        // SWITCH FORMAT BRAILLE 
-        function toggleFormatBraille() {
-            isFormatBraille = document.getElementById('toggleBraille').checked;
-            janaKatalogBuku();
-            kemaskiniTroliRingkasan();
-            tunjukkanToast(isFormatBraille ? "Format Braille diaktifkan di dalam senarai katalog Pendidikan Khas." : "Paparan buku Braille disembunyikan.", "info");
-        }
-
-        // JANA KATALOG BUKU TEKS SECARA DINAMIK 
-        function janaKatalogBuku() {
-            const grid = document.getElementById('gridBuku');
-            const carian = document.getElementById('carianBuku').value.toLowerCase();
-            const katSekolah = document.getElementById('kategoriSekolah').value;
-            grid.innerHTML = "";
-
-            let senaraiDipaparkan = [];
-
-            if (aliranSemasa === 'perdana') {
-                senaraiDipaparkan = (databaseBukuPerdana[katSekolah] || []).map(b => ({ ...b, aliran_utama: "PERDANA", aliran_kategori: "Arus Perdana" }));
-            } else {
-                const standardKhas = (databaseBukuKhasStandard[katSekolah] || []).map(b => ({ ...b, aliran_utama: "PENDIDIKAN KHAS", aliran_kategori: "PENDIDIKAN KHAS" }));
-                senaraiDipaparkan = [...standardKhas];
-
-                if (isFormatBraille && katSekolah !== 'SEKOLAH AGAMA BANTUAN KERAJAAN (SABK)' && katSekolah !== 'SEKOLAH RENDAH AGAMA (SRA)') {
-                    const brailleKhas = databaseBukuKhasBraille.map(b => ({ ...b, aliran_utama: "PENDIDIKAN KHAS", aliran_kategori: "BRAILLE" }));
-                    senaraiDipaparkan = [...senaraiDipaparkan, ...brailleKhas];
-                }
-            }
-
-            const senaraiDitapis = senaraiDipaparkan.filter(buku => {
-                return buku.kod.toLowerCase().includes(carian) || buku.tajuk.toLowerCase().includes(carian);
-            });
-
-            document.getElementById('kiraBuku').innerText = senaraiDitapis.length;
-
-            if (senaraiDitapis.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full py-12 text-center bg-white border border-dashed border-slate-200 rounded-2xl">
-                        <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
-                        <p class="text-slate-500 font-medium">Buku teks tidak dijumpai.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            senaraiDitapis.forEach(buku => {
-                const kuantiti = troliPesanan[buku.kod] || 0;
-                
-                let sempadanWarna = 'border-l-blue-500';
-                let warnaLencana = 'bg-blue-100 text-blue-800';
-                if (buku.aliran_utama === "PENDIDIKAN KHAS") {
-                    if (buku.aliran_kategori === "BRAILLE") {
-                        sempadanWarna = 'border-l-purple-600';
-                        warnaLencana = 'bg-purple-100 text-purple-850';
-                    } else {
-                        sempadanWarna = 'border-l-amber-500';
-                        warnaLencana = 'bg-amber-100 text-amber-850';
-                    }
-                }
-                
-                const kad = document.createElement('div');
-                kad.className = `bg-white rounded-2xl border-2 border-slate-100 border-l-4 ${sempadanWarna} p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all`;
-                
-                kad.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-start gap-2 mb-2">
-                            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">${buku.kod}</span>
-                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${warnaLencana}">${buku.aliran_kategori}</span>
-                        </div>
-                        <h4 class="font-bold text-slate-800 text-sm sm:text-base leading-snug mb-3">${buku.tajuk}</h4>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-slate-50 flex items-center justify-end gap-4">
-                        <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                            <button type="button" onclick="larasKuantiti('${buku.kod}', -1)" class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-600 hover:bg-red-500 hover:text-white transition-colors shadow-sm text-xs font-bold">-</button>
-                            <input type="number" min="0" value="${kuantiti}" onchange="setKuantitiTerus('${buku.kod}', this.value)" 
-                                class="w-12 bg-transparent text-center font-extrabold text-slate-800 text-sm focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                            <button type="button" onclick="larasKuantiti('${buku.kod}', 1)" class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-600 hover:bg-green-500 hover:text-white transition-colors shadow-sm text-xs font-bold">+</button>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(kad);
-            });
-        }
-
-        // KAWALAN LARAS KUANTITI
-        function larasKuantiti(kod, beza) {
-            const kuantitiSedia = troliPesanan[kod] || 0;
-            let kuantitiBaru = kuantitiSedia + beza;
-            if (kuantitiBaru < 0) kuantitiBaru = 0;
-
-            if (kuantitiBaru === 0) {
-                delete troliPesanan[kod];
-            } else {
-                troliPesanan[kod] = kuantitiBaru;
-            }
-
-            janaKatalogBuku();
-            kemaskiniTroliRingkasan();
-        }
-
-        function setKuantitiTerus(kod, nilai) {
-            let kuantitiBaru = parseInt(nilai) || 0;
-            if (kuantitiBaru < 0) kuantitiBaru = 0;
-
-            if (kuantitiBaru === 0) {
-                delete troliPesanan[kod];
-            } else {
-                troliPesanan[kod] = kuantitiBaru;
-            }
-
-            janaKatalogBuku();
-            kemaskiniTroliRingkasan();
-        }
-
-        function cariBuku() {
-            janaKatalogBuku();
-        }
-
-        function dapatkanBukuDariKod(kod) {
-            for (const kat of Object.keys(databaseBukuPerdana)) {
-                const buku = databaseBukuPerdana[kat].find(b => b.kod === kod);
-                if (buku) return { ...buku, aliran_utama: "PERDANA", aliran_kategori: "Arus Perdana" };
-            }
-            for (const kat of Object.keys(databaseBukuKhasStandard)) {
-                const buku = databaseBukuKhasStandard[kat].find(b => b.kod === kod);
-                if (buku) return { ...buku, aliran_utama: "PENDIDIKAN KHAS", aliran_kategori: "PENDIDIKAN KHAS" };
-            }
-            const bukuBraille = databaseBukuKhasBraille.find(b => b.kod === kod);
-            if (bukuBraille) return { ...bukuBraille, aliran_utama: "PENDIDIKAN KHAS", aliran_kategori: "BRAILLE" };
-            
-            return null;
-        }
-
-        function kemaskiniTroliRingkasan() {
-            let totalUnit = 0;
-            let qtyPerdana = 0;
-            let qtyKhasStd = 0;
-            let qtyBraille = 0;
-
-            for (const [kod, kuantiti] of Object.entries(troliPesanan)) {
-                totalUnit += kuantiti;
-                const buku = dapatkanBukuDariKod(kod);
-                if (buku) {
-                    if (buku.aliran_utama === "PERDANA") {
-                        qtyPerdana += kuantiti;
-                    } else if (buku.aliran_kategori === "BRAILLE") {
-                        qtyBraille += kuantiti;
-                    } else {
-                        qtyKhasStd += kuantiti;
-                    }
-                }
-            }
-
-            document.getElementById('totalKuantiti').innerText = `${totalUnit} naskhah`;
-
-            let pecahanTeks = [];
-            if (qtyPerdana > 0) pecahanTeks.push(`${qtyPerdana} Perdana`);
-            if (qtyKhasStd > 0) pecahanTeks.push(`${qtyKhasStd} P. Khas`);
-            if (qtyBraille > 0) pecahanTeks.push(`${qtyBraille} Braille`);
-            
-            document.getElementById('infoPecahanAliran').innerText = pecahanTeks.length > 0 ? `(Pecahan: ${pecahanTeks.join(', ')})` : "";
-
-            const badgePerdana = document.getElementById('badgePerdanaQty');
-            const badgeKhas = document.getElementById('badgeKhasQty');
-
-            if (qtyPerdana > 0) {
-                badgePerdana.innerText = `${qtyPerdana} naskhah terpilih`;
-                badgePerdana.classList.remove('hidden');
-            } else {
-                badgePerdana.classList.add('hidden');
-            }
-
-            const totalKhasPilihan = qtyKhasStd + qtyBraille;
-            if (totalKhasPilihan > 0) {
-                badgeKhas.innerText = `${totalKhasPilihan} naskhah terpilih`;
-                badgeKhas.classList.remove('hidden');
-            } else {
-                badgeKhas.classList.add('hidden');
-            }
-        }
-
-        // KAWALAN MODAL RESIT 
-        function bukaModalPengesahan() {
-            const kod = document.getElementById('kodSekolah').value.trim();
-            const nama = document.getElementById('namaSekolah').value.trim();
-            const negeri = document.getElementById('negeri').value;
-            const daerah = document.getElementById('daerah').value.trim();
-            const kat = document.getElementById('kategoriSekolah').value;
-            const penyelaras = document.getElementById('penyelaras').value.trim();
-            const noTelefon = document.getElementById('noTelefon').value.trim();
-
-            if (!kod || !nama || !negeri || !daerah || !kat || !penyelaras || !noTelefon) {
-                tunjukkanToast("Sila lengkapkan semua maklumat dalam Profil Sekolah sebelum membuat semakan pesanan.", "error");
-                document.getElementById('kodSekolah').scrollIntoView({ behavior: 'smooth' });
-                return;
-            }
-
-            let totalUnit = 0;
-            for (const qty of Object.values(troliPesanan)) {
-                totalUnit += qty;
-            }
-
-            if (totalUnit === 0) {
-                tunjukkanToast("Anda perlu memasukkan sekurang-kurangnya 1 naskhah pesanan buku teks.", "error");
-                return;
-            }
-
-            document.getElementById('resitNamaSekolah').innerText = nama.toUpperCase();
-            document.getElementById('resitKodSekolah').innerText = `KOD: ${kod.toUpperCase()}`;
-            document.getElementById('resitKategoriSekolah').innerText = kat;
-            
-            const resitLoc = document.getElementById('resitLokasi');
-            if (resitLoc) resitLoc.innerText = `${daerah.toUpperCase()}, ${negeri.toUpperCase()}`;
-            
-            document.getElementById('resitPenyelaras').innerText = penyelaras.toUpperCase();
-            document.getElementById('resitPenyelarasCop').innerText = penyelaras.toUpperCase();
-            document.getElementById('resitNoTelefon').innerText = noTelefon;
-            document.getElementById('resitEmel').innerText = emelSemasa;
-
-            let aliranAktif = [];
-            for (const kodBuku of Object.keys(troliPesanan)) {
-                const b = dapatkanBukuDariKod(kodBuku);
-                if (b && !aliranAktif.includes(b.aliran_utama)) {
-                    aliranAktif.push(b.aliran_utama);
-                }
-            }
-            document.getElementById('resitAliran').innerText = aliranAktif.join(' + ');
-
-            const tableBody = document.getElementById('resitJadualBuku');
-            tableBody.innerHTML = "";
-
-            for (const [kodBuku, kuantiti] of Object.entries(troliPesanan)) {
-                const buku = dapatkanBukuDariKod(kodBuku);
-                if (buku) {
-                    let warnaFormat = 'bg-blue-100 text-blue-800';
-                    if (buku.aliran_kategori === "BRAILLE") {
-                        warnaFormat = 'bg-purple-100 text-purple-800';
-                    } else if (buku.aliran_utama === "PENDIDIKAN KHAS") {
-                        warnaFormat = 'bg-amber-100 text-amber-800';
-                    }
-
-                    const row = document.createElement('tr');
-                    row.className = "border-b border-slate-150 hover:bg-slate-50";
-                    row.innerHTML = `
-                        <td class="py-2.5 px-3">
-                            <span class="block font-bold text-slate-850">${buku.kod}</span>
-                            <span class="text-slate-600">${buku.tajuk}</span>
-                        </td>
-                        <td class="py-2.5 px-3 text-center">
-                            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded ${warnaFormat}">${buku.aliran_kategori}</span>
-                        </td>
-                        <td class="py-2.5 px-3 text-center font-extrabold text-slate-800 text-sm whitespace-nowrap">${kuantiti}</td>
-                        <td class="py-2.5 px-3 text-center border-l border-r border-slate-150 text-slate-300 font-mono bg-amber-50/20 whitespace-nowrap">[ &nbsp; &nbsp; &nbsp; ]</td>
-                        <td class="py-2.5 px-3 text-center text-slate-300 font-mono bg-amber-50/20 whitespace-nowrap">[&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;]</td>
-                    `;
-                    tableBody.appendChild(row);
-                }
-            }
-
-            document.getElementById('resitJumlahKuantiti').innerText = `${totalUnit} naskhah`;
-
-            const modal = document.getElementById('modalPengesahan');
-            const modalContent = document.getElementById('modalKandungan');
-            modal.classList.remove('hidden');
             setTimeout(() => {
-                modalContent.classList.remove('scale-95', 'opacity-0');
-            }, 50);
+                toastBox.style.transform = "translateY(-100px)";
+                toastBox.style.opacity = "0";
+            }, 4000);
         }
 
-        function tutupModalPengesahan() {
-            const modal = document.getElementById('modalPengesahan');
-            const modalContent = document.getElementById('modalKandungan');
-            modalContent.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+        // Menguruskan Modal Tetapan API
+        function bukaModalTetapan() {
+            document.getElementById("modal-tetapan").classList.remove("hidden");
         }
 
-        function cetakResit() {
-            window.print();
+        function tutupModalTetapan() {
+            document.getElementById("modal-tetapan").classList.add("hidden");
         }
 
-        // HANTAR PESANAN KE GOOGLE SHEETS (MENGGUNAKAN JSONP GET - 100% BEBAS SEKATAN CORS)
-        function hantarPesananKeGoogleSheets() {
-            const statusMod = isKemaskiniMode ? "KEMASKINI" : "BARU";
-            const generatedId = idPesananSemasa || "SPBT-" + new Date().getTime().toString().slice(-6);
-            const katSekolah = document.getElementById('kategoriSekolah').value;
+        function simpanTetapanApi() {
+            const val = document.getElementById("input-api-url").value.trim();
+            state.backendUrl = val;
+            localStorage.setItem("spbt_backend_url", val);
+            tunjukToast("Tetapan backend berjaya disimpan!", "success");
+            tutupModalTetapan();
+        }
 
-            const dataPesanan = {
-                id_pesanan: generatedId,
-                status_pesanan: statusMod,
-                emel: emelSemasa,
-                kod_sekolah: document.getElementById('kodSekolah').value.trim().toUpperCase(),
-                nama_sekolah: document.getElementById('namaSekolah').value.trim().toUpperCase(),
-                negeri: document.getElementById('negeri').value,
-                daerah: document.getElementById('daerah').value.trim().toUpperCase(),
-                kategori_sekolah: katSekolah,
-                penyelaras: document.getElementById('penyelaras').value.trim().toUpperCase(),
-                no_telefon: document.getElementById('noTelefon').value.trim(),
-                mempunyai_braille: isFormatBraille,
-                pesanan: troliPesanan
-            };
+        // Fungsi Navigasi Langkah
+        function kembaliKeLangkah(step) {
+            sembunyiSemuaLangkah();
+            
+            // Kemaskini Progress Bar
+            kemaskiniProgressBar(step);
 
-            // Simpan sandaran ke dalam localStorage setiap kali hantar ditekan
-            localStorage.setItem(`spbt_order_${emelSemasa}`, JSON.stringify(dataPesanan));
+            document.getElementById(`section-step-${step}`).classList.remove("hidden");
+            state.currentStep = step;
+        }
 
-            const btn = document.getElementById('btnHantarRasmi');
-            const spinner = document.getElementById('spinnerHantar');
-            const ikon = document.getElementById('ikonHantar');
+        function sembunyiSemuaLangkah() {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`section-step-${i}`).classList.add("hidden");
+            }
+        }
 
-            btn.disabled = true;
-            spinner.classList.remove('hidden');
-            ikon.classList.add('hidden');
-            btn.classList.add('opacity-70', 'cursor-not-allowed');
+        function kemaskiniProgressBar(step) {
+            for (let i = 1; i <= 4; i++) {
+                const badge = document.getElementById(`step-badge-${i}`);
+                const text = document.getElementById(`step-text-${i}`);
+                
+                // Reset standard
+                badge.className = "w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-slate-200 text-slate-500 transition-all";
+                text.className = "text-xs mt-2 font-medium text-slate-400 transition-all";
 
-            const flatPesananArray = [];
-            for (const [kodBuku, kuantiti] of Object.entries(troliPesanan)) {
-                const buku = dapatkanBukuDariKod(kodBuku);
-                if (buku) {
-                    flatPesananArray.push({
-                        kod_buku: buku.kod,
-                        tajuk_buku: buku.tajuk,
-                        kuantiti: kuantiti,
-                        aliran_utama: buku.aliran_utama,
-                        aliran_kategori: buku.aliran_kategori
-                    });
+                if (i < step) {
+                    // Selesai
+                    badge.className = "w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-emerald-600 text-white transition-all shadow-md";
+                    badge.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    text.className = "text-xs mt-2 font-bold text-emerald-600 transition-all";
+                } else if (i === step) {
+                    // Semasa
+                    badge.className = "w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm bg-brand-600 text-white transition-all shadow-md ring-4 ring-brand-100";
+                    badge.innerHTML = i === 4 ? '<i class="fa-solid fa-check"></i>' : i;
+                    text.className = "text-xs mt-2 font-bold text-brand-800 transition-all";
+                } else {
+                    // Akan datang
+                    badge.innerHTML = i === 4 ? '✓' : i;
                 }
             }
 
-            const payloadUntukSheets = {
-                id_pesanan: generatedId,
-                status_pesanan: statusMod,
-                emel: dataPesanan.emel,
-                kod_sekolah: dataPesanan.kod_sekolah,
-                nama_sekolah: dataPesanan.nama_sekolah,
-                negeri: dataPesanan.negeri,
-                daerah: dataPesanan.daerah,
-                kategori_sekolah: dataPesanan.kategori_sekolah,
-                penyelaras: dataPesanan.penyelaras,
-                no_telefon: dataPesanan.no_telefon,
-                pesanan: flatPesananArray
+            // Kemaskini line color
+            for (let i = 1; i <= 3; i++) {
+                const line = document.getElementById(`step-line-${i}`);
+                if (i < step) {
+                    line.className = "h-1 flex-1 bg-brand-600 transition-all duration-300";
+                } else {
+                    line.className = "h-1 flex-1 bg-slate-200 transition-all duration-300";
+                }
+            }
+        }
+
+        // BAHAGIAN 1: Proses Semakan Email
+        function prosesSemakanEmail(event) {
+            event.preventDefault();
+            const emailInput = document.getElementById("input-email").value.trim().toLowerCase();
+            
+            if (!emailInput || !emailInput.includes("@")) {
+                tunjukToast("Sila masukkan alamat e-mel yang sah.", "error");
+                return;
+            }
+
+            state.email = emailInput;
+            document.getElementById("btn-submit-step-1").disabled = true;
+            document.getElementById("btn-submit-step-1").innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span>Menyemak Pangkalan Data...</span>';
+
+            // Sambungan terus ke API Google Apps Script (Tiada fallback ke Local Storage)
+            const requestUrl = `${GOOGLE_SCRIPT_URL}?email=${encodeURIComponent(emailInput)}`;
+            
+            fetch(requestUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (response.status === "success") {
+                        state.isExistingRecord = true;
+                        state.sekolahInfo = response.data.sekolahInfo;
+                        state.pesananPerdana = response.data.pesananPerdana || {};
+                        state.pesananKhas = response.data.pesananKhas || {};
+                        state.pesananBraille = response.data.pesananBraille || {};
+                        state.gunaKhas = response.data.gunaKhas || false;
+                        state.gunaBraille = response.data.gunaBraille || false;
+                        
+                        tunjukToast("Rekod sedia ada ditemui! Memuatkan data pesanan...", "success");
+                        binaBorangMaklumatSekolah(true);
+                        kembaliKeLangkah(2);
+                    } else {
+                        state.isExistingRecord = false;
+                        tunjukToast("E-mel baharu dikesan. Sila lengkapkan maklumat sekolah.", "info");
+                        binaBorangMaklumatSekolah(false);
+                        kembaliKeLangkah(2);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    tunjukToast("Gagal berhubung dengan Google Sheets. Sila pastikan internet anda aktif atau konfigurasi Google Script betul.", "error");
+                })
+                .finally(() => {
+                    document.getElementById("btn-submit-step-1").disabled = false;
+                    document.getElementById("btn-submit-step-1").innerHTML = '<span>Seterusnya & Semak E-mel</span> <i class="fa-solid fa-arrow-right"></i>';
+                });
+        }
+
+        // BAHAGIAN 2: Bina Borang Maklumat Sekolah
+        function binaBorangMaklumatSekolah(adaRekod) {
+            document.getElementById("display-user-email").textContent = state.email;
+            const badge = document.getElementById("badge-kemaskini");
+
+            if (adaRekod) {
+                badge.classList.remove("hidden");
+                // Isi input borang
+                document.getElementById("input-negeri").value = state.sekolahInfo.negeri || "";
+                document.getElementById("input-ppd").value = state.sekolahInfo.ppd || "";
+                document.getElementById("input-kod-sekolah").value = state.sekolahInfo.kodSekolah || "";
+                document.getElementById("input-nama-sekolah").value = state.sekolahInfo.namaSekolah || "";
+                document.getElementById("input-kategori-sekolah").value = state.sekolahInfo.kategoriSekolah || "SK";
+                document.getElementById("input-nama-guru").value = state.sekolahInfo.namaGuru || "";
+                document.getElementById("input-no-telefon").value = state.sekolahInfo.noTelefon || "";
+            } else {
+                badge.classList.add("hidden");
+                // Reset form inputs
+                document.getElementById("form-step-2").reset();
+                document.getElementById("input-kategori-sekolah").value = "SK";
+            }
+        }
+
+        // BAHAGIAN 2: Proses Pengesahan Maklumat Sekolah
+        function prosesMaklumatSekolah(event) {
+            event.preventDefault();
+            
+            state.sekolahInfo = {
+                negeri: document.getElementById("input-negeri").value,
+                ppd: document.getElementById("input-ppd").value.trim(),
+                kodSekolah: document.getElementById("input-kod-sekolah").value.trim().toUpperCase(),
+                namaSekolah: document.getElementById("input-nama-sekolah").value.trim().toUpperCase(),
+                kategoriSekolah: document.getElementById("input-kategori-sekolah").value,
+                namaGuru: document.getElementById("input-nama-guru").value.trim(),
+                noTelefon: document.getElementById("input-no-telefon").value.trim()
             };
 
-            panggilAPIAwan({
-                action: "hantar_pesanan",
-                data: JSON.stringify(payloadUntukSheets)
-            }, function(res) {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                ikon.classList.remove('hidden');
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            // Pasang paparan kepala di langkah 3
+            document.getElementById("display-kategori-sekolah").textContent = state.sekolahInfo.kategoriSekolah;
+            document.getElementById("display-nama-sekolah").textContent = `${state.sekolahInfo.namaSekolah} (${state.sekolahInfo.kodSekolah})`;
+            document.getElementById("display-sub-sekolah").textContent = `${state.sekolahInfo.ppd}, ${state.sekolahInfo.negeri} • Penyelaras: ${state.sekolahInfo.namaGuru}`;
 
-                tunjukkanToast(`Pesanan ${statusMod} berjaya dihantar ke awan! Rekod lama telah diganti tulis & salinan emel dihantar.`, "success");
-                tutupModalPengesahan();
-                tukarEmel();
-            }, function(err) {
-                btn.disabled = false;
-                spinner.classList.add('hidden');
-                ikon.classList.remove('hidden');
-                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            // Sediakan dan render senarai jadual buku mengikut kategori terpilih
+            binaJadualBukuDinamik();
 
-                tunjukkanToast("Ralat menghantar pesanan: " + err.message, "error");
+            // Set default toggle states
+            document.getElementById("chk-guna-khas").checked = state.gunaKhas;
+            kawalPaparanKhas(state.gunaKhas);
+            document.getElementById("chk-guna-braille").checked = state.gunaBraille;
+            kawalPaparanBraille(state.gunaBraille);
+
+            kiraJumlahKeseluruhan();
+            kembaliKeLangkah(3);
+        }
+
+        // BAHAGIAN 3: Bina Senarai Buku Teks Mengikut Kategori & Saringan
+        function binaJadualBukuDinamik() {
+            const kategori = state.sekolahInfo.kategoriSekolah || "SK";
+            
+            // 1. Aliran Perdana
+            const senaraiPerdana = SENARAI_BUKU_PERDANA[kategori] || SENARAI_BUKU_PERDANA["SK"];
+            const tbodyPerdana = document.getElementById("tbody-perdana");
+            tbodyPerdana.innerHTML = "";
+
+            senaraiPerdana.forEach(buku => {
+                const qty = state.pesananPerdana[buku.code] || 0;
+                tbodyPerdana.appendChild(binaRowJadual(buku, qty, "perdana"));
             });
+
+            // 2. Aliran Khas (Pendidikan Khas menggunakan SK sebagai asas jika SABK/SRA dipilih)
+            const kategoriKhas = (kategori === "SABK" || !SENARAI_BUKU_KHAS[kategori]) ? "SK" : kategori;
+            const senaraiKhas = SENARAI_BUKU_KHAS[kategoriKhas];
+            const tbodyKhas = document.getElementById("tbody-khas");
+            tbodyKhas.innerHTML = "";
+
+            senaraiKhas.forEach(buku => {
+                const qty = state.pesananKhas[buku.code] || 0;
+                tbodyKhas.appendChild(binaRowJadual(buku, qty, "khas"));
+            });
+
+            // 3. Format Braille
+            const tbodyBraille = document.getElementById("tbody-braille");
+            tbodyBraille.innerHTML = "";
+
+            SENARAI_BUKU_BRAILLE.forEach(buku => {
+                const qty = state.pesananBraille[buku.code] || 0;
+                tbodyBraille.appendChild(binaRowJadual(buku, qty, "braille"));
+            });
+        }
+
+        // Bina Objek DOM Row Buku
+        function binaRowJadual(buku, qty, jenis) {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/80 transition row-buku-item";
+            tr.setAttribute("data-kod", buku.code.toLowerCase());
+            tr.setAttribute("data-tajuk", buku.title.toLowerCase());
+
+            const isBA = buku.code.startsWith("BA") || buku.code.startsWith("DA") || buku.code.startsWith("EA") || buku.code.startsWith("AA");
+            const colorClass = isBA ? "text-teal-700 bg-teal-50" : "text-brand-800 bg-brand-50";
+            const badgeText = isBA ? "BA" : "BT";
+
+            tr.innerHTML = `
+                <td class="p-4 font-mono font-bold text-slate-900">
+                    <span class="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold mr-2 ${colorClass}">${badgeText}</span>${buku.code}
+                </td>
+                <td class="p-4 font-semibold text-slate-800 text-xs md:text-sm tracking-tight">${buku.title}</td>
+                <td class="p-4">
+                    <div class="flex items-center justify-center space-x-2">
+                        <button 
+                            type="button"
+                            onclick="ubahNilaiInput('${buku.code}', -1, '${jenis}')"
+                            class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold focus:outline-none transition-all"
+                        >
+                            <i class="fa-solid fa-minus text-xs"></i>
+                        </button>
+                        <input 
+                            type="number" 
+                            id="input-${jenis}-${buku.code}"
+                            min="0"
+                            value="${qty > 0 ? qty : ''}"
+                            placeholder="0"
+                            onkeyup="inputTanganTukar('${buku.code}', this.value, '${jenis}')"
+                            onchange="inputTanganTukar('${buku.code}', this.value, '${jenis}')"
+                            class="w-20 text-center py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none font-bold text-slate-950 text-sm"
+                        />
+                        <button 
+                            type="button"
+                            onclick="ubahNilaiInput('${buku.code}', 1, '${jenis}')"
+                            class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300 flex items-center justify-center font-bold focus:outline-none transition-all"
+                        >
+                            <i class="fa-solid fa-plus text-xs"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            return tr;
+        }
+
+        // Menguruskan Kuantiti dengan butang +/-
+        function ubahNilaiInput(code, delta, jenis) {
+            const input = document.getElementById(`input-${jenis}-${code}`);
+            let currentVal = parseInt(input.value) || 0;
+            let newVal = Math.max(0, currentVal + delta);
+            
+            input.value = newVal > 0 ? newVal : "";
+            
+            simpanStatePesanan(code, newVal, jenis);
+        }
+
+        // Menguruskan kemasukan nilai secara menaip terus
+        function inputTanganTukar(code, value, jenis) {
+            let newVal = Math.max(0, parseInt(value) || 0);
+            simpanStatePesanan(code, newVal, jenis);
+        }
+
+        function simpanStatePesanan(code, val, jenis) {
+            if (jenis === "perdana") {
+                if (val > 0) state.pesananPerdana[code] = val;
+                else delete state.pesananPerdana[code];
+            } else if (jenis === "khas") {
+                if (val > 0) state.pesananKhas[code] = val;
+                else delete state.pesananKhas[code];
+            } else if (jenis === "braille") {
+                if (val > 0) state.pesananBraille[code] = val;
+                else delete state.pesananBraille[code];
+            }
+
+            kiraJumlahKeseluruhan();
+        }
+
+        // Pengiraan Jumlah Kuantiti Buku
+        function dapatKiraKumpulan(pesananObj) {
+            return Object.values(pesananObj).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+        }
+
+        function kiraJumlahKeseluruhan() {
+            const sumPerdana = dapatKiraKumpulan(state.pesananPerdana);
+            const sumKhas = state.gunaKhas ? dapatKiraKumpulan(state.pesananKhas) : 0;
+            const sumBraille = (state.gunaKhas && state.gunaBraille) ? dapatKiraKumpulan(state.pesananBraille) : 0;
+            const grandTotal = sumPerdana + sumKhas + sumBraille;
+
+            // Kemaskini Lencana di UI
+            document.getElementById("badge-total-perdana").textContent = `Jumlah: ${sumPerdana} naskah`;
+            document.getElementById("badge-total-khas").textContent = `Jumlah Khas: ${sumKhas} naskah`;
+            document.getElementById("badge-total-braille").textContent = `Jumlah Braille: ${sumBraille} naskah`;
+
+            document.getElementById("display-jumlah-naskah").innerHTML = `${grandTotal} <span class="text-xs font-semibold text-white">Naskah</span>`;
+            document.getElementById("display-total-tampung").textContent = `${grandTotal} Naskah Terpilih`;
+
+            return { sumPerdana, sumKhas, sumBraille, grandTotal };
+        }
+
+        // Tapis Carian Buku
+        function tapisBuku(query) {
+            const lowQuery = query.toLowerCase().trim();
+            const rows = document.querySelectorAll(".row-buku-item");
+
+            rows.forEach(row => {
+                const kod = row.getAttribute("data-kod");
+                const tajuk = row.getAttribute("data-tajuk");
+
+                if (kod.includes(lowQuery) || tajuk.includes(lowQuery)) {
+                    row.classList.remove("hidden");
+                } else {
+                    row.classList.add("hidden");
+                }
+            });
+        }
+
+        // Kawalan Paparan Aliran Khas & Braille
+        function kawalPaparanKhas(isAktif) {
+            state.gunaKhas = isAktif;
+            const card = document.getElementById("card-pendidikan-khas");
+            const iconContainer = document.getElementById("icon-container-khas");
+            const boxAliranKhas = document.getElementById("box-aliran-khas");
+
+            if (isAktif) {
+                card.className = "bg-white p-5 rounded-xl shadow-md border-2 border-indigo-600 bg-indigo-50/20 transition-all duration-300";
+                iconContainer.className = "bg-indigo-100 text-indigo-800 p-3.5 rounded-xl transition-colors duration-300";
+                boxAliranKhas.classList.remove("hidden");
+            } else {
+                card.className = "bg-white p-5 rounded-xl shadow-md border border-slate-200 transition-all duration-300";
+                iconContainer.className = "bg-slate-100 text-slate-400 p-3.5 rounded-xl transition-colors duration-300";
+                boxAliranKhas.classList.add("hidden");
+                // Reset braille juga
+                document.getElementById("chk-guna-braille").checked = false;
+                kawalPaparanBraille(false);
+            }
+            kiraJumlahKeseluruhan();
+        }
+
+        function kawalPaparanBraille(isAktif) {
+            state.gunaBraille = isAktif;
+            const boxAliranBraille = document.getElementById("box-aliran-braille");
+
+            if (isAktif && state.gunaKhas) {
+                boxAliranBraille.classList.remove("hidden");
+            } else {
+                boxAliranBraille.classList.add("hidden");
+            }
+            kiraJumlahKeseluruhan();
+        }
+
+        // Simpan Dan Hantar Pesanan (Hanya simpan terus ke Google Sheets)
+        function simpanDanHantarPesanan() {
+            const totals = kiraJumlahKeseluruhan();
+            
+            if (totals.grandTotal === 0) {
+                tunjukToast("Sila masukkan sekurang-kurangnya satu kuantiti buku pesanan sebelum dihantar.", "error");
+                return;
+            }
+
+            const payload = {
+                email: state.email,
+                sekolahInfo: state.sekolahInfo,
+                pesananPerdana: state.pesananPerdana,
+                pesananKhas: state.gunaKhas ? state.pesananKhas : {},
+                pesananBraille: (state.gunaKhas && state.gunaBraille) ? state.pesananBraille : {},
+                gunaKhas: state.gunaKhas,
+                gunaBraille: state.gunaBraille,
+                tarikhKemaskini: new Date().toISOString()
+            };
+
+            // Animasi Loading
+            tunjukToast("Sedang menghantar pesanan rasmi ke Google Sheets...", "info");
+
+            // Hantar menerusi Apps Script API POST
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(payload),
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    tunjukToast("Berjaya! Pesanan anda selamat disimpan ke Google Sheets dan resit e-mel telah dihantar.", "success");
+                    bukaResitSelesai(payload);
+                } else {
+                    throw new Error(data.message || "Ralat maklum balas");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                tunjukToast("Gagal menyimpan ke Google Sheets. Sila pastikan sambungan internet anda aktif atau konfigurasi Google Script betul.", "error");
+            });
+        }
+
+        // BAHAGIAN 4: Paparan Resit Muktamad
+        function bukaResitSelesai(payload) {
+            // Sediakan data guru dan sekolah
+            document.getElementById("receipt-nama-guru").textContent = payload.sekolahInfo.namaGuru;
+            document.getElementById("receipt-email").textContent = payload.email;
+            document.getElementById("receipt-no-telefon").textContent = `No. Telefon: ${payload.sekolahInfo.noTelefon}`;
+            
+            document.getElementById("receipt-nama-sekolah").textContent = payload.sekolahInfo.namaSekolah;
+            document.getElementById("receipt-kategori-sekolah").textContent = payload.sekolahInfo.kategoriSekolah;
+            document.getElementById("receipt-ppd-negeri").textContent = `${payload.sekolahInfo.ppd}, ${payload.sekolahInfo.negeri}`;
+
+            // Sediakan Ringkasan Berangka
+            const totals = kiraJumlahKeseluruhan();
+            document.getElementById("receipt-summary-perdana").textContent = totals.sumPerdana;
+            document.getElementById("receipt-summary-khas").textContent = totals.sumKhas;
+            document.getElementById("receipt-summary-braille").textContent = totals.sumBraille;
+
+            // Sediakan ID Rujukan Terenkripsi / Unik Ringkas
+            const uniqueId = `SPBT-Y1-${payload.sekolahInfo.kodSekolah}-${Math.floor(1000 + Math.random() * 9000)}`;
+            document.getElementById("receipt-id-rujukan").textContent = uniqueId;
+
+            const tarikhCetak = new Date(payload.tarikhKemaskini);
+            document.getElementById("receipt-tarikh").textContent = `Tarikh Rekod: ${tarikhCetak.toLocaleString('ms-MY')}`;
+
+            // Sediakan Lampiran Table Rows
+            const receiptTbody = document.getElementById("receipt-tbody");
+            receiptTbody.innerHTML = "";
+
+            // 1. Aliran Perdana Rows
+            const listPerdana = SENARAI_BUKU_PERDANA[payload.sekolahInfo.kategoriSekolah] || SENARAI_BUKU_PERDANA["SK"];
+            listPerdana.forEach(b => {
+                const q = payload.pesananPerdana[b.code] || 0;
+                if (q > 0) tambahBarisResit(receiptTbody, b.code, "Perdana", b.title, q);
+            });
+
+            // 2. Aliran Khas Rows
+            if (payload.gunaKhas) {
+                const kategoriKhas = (payload.sekolahInfo.kategoriSekolah === "SABK" || !SENARAI_BUKU_KHAS[payload.sekolahInfo.kategoriSekolah]) ? "SK" : payload.sekolahInfo.kategoriSekolah;
+                const listKhas = SENARAI_BUKU_KHAS[kategoriKhas];
+                listKhas.forEach(b => {
+                    const q = payload.pesananKhas[b.code] || 0;
+                    if (q > 0) tambahBarisResit(receiptTbody, b.code, "Pend. Khas", b.title, q, "text-indigo-700 bg-indigo-50");
+                });
+            }
+
+            // 3. Format Braille Rows
+            if (payload.gunaKhas && payload.gunaBraille) {
+                SENARAI_BUKU_BRAILLE.forEach(b => {
+                    const q = payload.pesananBraille[b.code] || 0;
+                    if (q > 0) tambahBarisResit(receiptTbody, b.code, "Braille", b.title, q, "text-purple-700 bg-purple-50");
+                });
+            }
+
+            kembaliKeLangkah(4);
+        }
+
+        function tambahBarisResit(tbody, code, aliran, title, qty, badgeColor = "text-brand-800 bg-brand-50") {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="p-3 font-mono font-bold text-slate-800">${code}</td>
+                <td class="p-3">
+                    <span class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase ${badgeColor}">${aliran}</span>
+                </td>
+                <td class="p-3 font-medium text-slate-700">${title}</td>
+                <td class="p-3 text-center font-bold text-slate-900">${qty}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // Sesi Baharu / Log Keluar
+        function setSesiBaharu() {
+            state.email = "";
+            state.isExistingRecord = false;
+            state.pesananPerdana = {};
+            state.pesananKhas = {};
+            state.pesananBraille = {};
+            state.gunaKhas = false;
+            state.gunaBraille = false;
+
+            document.getElementById("input-email").value = "";
+            kembaliKeLangkah(1);
+            tunjukToast("Sesi baharu dimulakan.", "info");
         }
     </script>
-    <span id="resitLocations" class="hidden"></span>
 </body>
 </html>
