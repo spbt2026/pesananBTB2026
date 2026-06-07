@@ -55,7 +55,6 @@
         
         /* GAYA KHAS UNTUK CETAKAN RESIT FIKSAH */
         @media print {
-            /* Sembunyikan segalanya secara lalai semasa mencetak */
             body, html {
                 background: #ffffff !important;
                 background-color: #ffffff !important;
@@ -151,7 +150,6 @@
                 <div>
                     <h1 class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2">
                         <span>SISTEM PESANAN BUKU TEKS TERBITAN BAHARU</span>
-                        <span class="bg-amber-500 text-brand-950 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"></span>
                     </h1>
                     <p class="text-xs text-brand-200 font-medium tracking-wide">Skim Pinjaman Buku Teks (SPBT)</p>
                 </div>
@@ -414,15 +412,31 @@
             <!-- Panel Pengisian Aliran (Perdana & Khas Toggles) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                <!-- Aliran Perdana Card -->
-                <div class="bg-white p-5 rounded-xl shadow-md border-2 border-brand-500 flex items-center space-x-4">
-                    <div class="bg-brand-50 p-3.5 rounded-xl text-brand-700">
-                        <i class="fa-solid fa-graduation-cap text-2xl"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-lg">Aliran Perdana</h4>
-                        <p class="text-xs text-slate-500">Buku teks bagi kelas arus perdana mengikut kategori sekolah.</p>
-                        <span class="inline-block mt-1.5 bg-brand-100 text-brand-800 text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase">Wajib</span>
+                <!-- Aliran Perdana Card (Kini Pilihan/Optional) -->
+                <div id="card-perdana" class="bg-white p-5 rounded-xl shadow-md border-2 border-brand-500 transition-all duration-300">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div id="icon-container-perdana" class="bg-brand-100 text-brand-700 p-3.5 rounded-xl transition-colors duration-300">
+                                <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg">Aliran Perdana</h4>
+                                <p class="text-xs text-slate-500">Buku teks bagi kelas arus perdana mengikut kategori sekolah.</p>
+                                
+                                <div class="mt-3.5 flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="chk-guna-perdana"
+                                        onchange="kawalPaparanPerdana(this.checked)"
+                                        class="w-5 h-5 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer"
+                                        checked
+                                    />
+                                    <label for="chk-guna-perdana" class="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                        Aktifkan pesanan buku teks Aliran Perdana
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -444,7 +458,7 @@
                                         onchange="kawalPaparanKhas(this.checked)"
                                         class="w-5 h-5 text-brand-600 border-slate-300 rounded focus:ring-brand-500 cursor-pointer"
                                     />
-                                    <label htmlFor="chk-guna-khas" class="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                    <label for="chk-guna-khas" class="text-xs font-bold text-slate-700 cursor-pointer select-none">
                                         Aktifkan pesanan buku teks Aliran Pendidikan Khas
                                     </label>
                                 </div>
@@ -477,7 +491,7 @@
             </div>
 
             <!-- JADUAL ALIRAN PERDANA -->
-            <div class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+            <div id="box-aliran-perdana" class="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
                 <div class="bg-brand-800 px-6 py-4.5 text-white flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div class="flex items-center space-x-2.5">
                         <i class="fa-solid fa-book-open text-lg text-brand-300"></i>
@@ -525,7 +539,7 @@
                             class="w-5 h-5 text-indigo-600 border-indigo-300 rounded focus:ring-indigo-500 cursor-pointer"
                         />
                         <div>
-                            <label htmlFor="chk-guna-braille" class="text-sm font-bold text-slate-800 cursor-pointer select-none">
+                            <label for="chk-guna-braille" class="text-sm font-bold text-slate-800 cursor-pointer select-none">
                                 Sekolah memerlukan Buku Teks Format Braille?
                             </label>
                             <p class="text-xs text-slate-500">Tandakan pilihan ini sekiranya mempunyai MBPK dengan Ketidakupayaan Penglihatan.</p>
@@ -752,49 +766,6 @@
 
     </main>
 
-    <!-- MODAL TETAPAN API BACKEND (GOOGLE APPS SCRIPT) -->
-    <div id="modal-tetapan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 no-print">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scaleUp">
-            <div class="bg-brand-950 p-5 text-white flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-cloud text-amber-400"></i>
-                    <h3 class="font-extrabold text-sm md:text-base">Tetapan Aplikasi Awan SPBT</h3>
-                </div>
-                <button onclick="tutupModalTetapan()" class="text-slate-300 hover:text-white text-xl font-bold focus:outline-none">&times;</button>
-            </div>
-            
-            <div class="p-6 space-y-4">
-                <p class="text-xs text-slate-600 leading-relaxed">
-                    Aplikasi ini menyokong penyimpanan pangkalan data masa-nyata. Anda boleh memasukkan URL Web App Google Apps Script anda di bawah bagi membolehkan penghantaran data terus ke Google Sheets dan mengaktifkan penghantaran e-mel pengesahan automatik.
-                </p>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">URL Google Apps Script (API Web App)</label>
-                    <input 
-                        type="url" 
-                        id="input-api-url"
-                        placeholder="https://script.google.com/macros/s/.../exec"
-                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-mono"
-                    />
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg flex items-start space-x-2 text-amber-900 text-[11px] leading-relaxed">
-                    <i class="fa-solid fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>
-                    <span>Sistem akan menggunakan storan pelayar lokal (*Local Storage*) sekiranya ruangan URL di atas dibiarkan kosong.</span>
-                </div>
-            </div>
-
-            <div class="bg-slate-50 px-6 py-4 border-t border-slate-150 flex justify-end space-x-3">
-                <button onclick="tutupModalTetapan()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-100 transition-all">
-                    Batal
-                </button>
-                <button onclick="simpanTetapanApi()" class="bg-brand-700 hover:bg-brand-800 text-white text-xs font-bold px-5 py-2 rounded-lg transition-all shadow-sm">
-                    Simpan Tetapan
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- NOTIFIKASI TOAST DIRI -->
     <div id="toast-box" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-100px] opacity-0 flex items-center p-4 rounded-xl shadow-2xl text-white max-w-sm no-print">
         <div id="toast-icon" class="mr-3 text-lg"></div>
@@ -804,15 +775,8 @@
     <!-- FOOTER UTAMA -->
     <footer class="bg-slate-900 text-slate-500 py-8 border-t border-slate-800 text-xs text-center no-print">
         <div class="max-w-7xl mx-auto px-4 space-y-2">
-            <p class="font-bold text-slate-300">Hak Cipta Terpelihara © 2026 Unit Skim Pinjaman Buku Teks (SPBT).</p>
-            <p class="text-[10px] leading-relaxed">Aplikasi portal ini dibangunkan khas untuk memudahkan pengisian pengumpulan pesanan pembekalan buku teks edisi baharu Tahun 1 di semua peringkat sekolah rendah kerajaan seluruh negara.</p>
-            <div class="flex justify-center space-x-4 pt-2 text-brand-400 font-bold">
-                <a href="#" class="hover:underline"></a>
-                <span>•</span>
-                <a href="#" class="hover:underline"></a>
-                <span>•</span>
-                <a href="#" class="hover:underline"></a>
-            </div>
+          <p class="font-bold text-slate-300">Hak Cipta Terpelihara © 2026 Unit Skim Pinjaman Buku Teks (SPBT).</p>
+          <p class="text-[10px] leading-relaxed">Aplikasi portal ini dibangunkan khas untuk memudahkan pengisian pengumpulan pesanan pembekalan buku teks edisi baharu Tahun 1 di semua peringkat sekolah rendah kerajaan seluruh negara.</p>
         </div>
     </footer>
 
@@ -902,6 +866,23 @@
                 { code: "ET111002", title: "PENDIDIKAN MORAL TAHUN 1 SJKT (BT)" }
             ],
             SABK: [
+                { code: "BA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
+                { code: "BT061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
+                { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
+                { code: "BA211030", title: "BAHASA ARAB TAHUN 1 (BA)" },
+                { code: "BT211030", title: "BAHASA ARAB TAHUN 1 (BT)" },
+                { code: "BA021001", title: "BAHASA INGGERIS TAHUN 1 (BA)" },
+                { code: "BT021005", title: "BAHASA INGGERIS TAHUN 1 (BT)" },
+                { code: "BA011123", title: "BAHASA MELAYU TAHUN 1 SK (BA)" },
+                { code: "BT011123", title: "BAHASA MELAYU TAHUN 1 SK (BT)" },
+                { code: "BA081005", title: "MATEMATIK TAHUN 1 SK (BA)" },
+                { code: "BT081007", title: "MATEMATIK TAHUN 1 SK (BT)" },
+                { code: "BA101005", title: "PENDIDIKAN ISLAM TAHUN 1 (BA)" },
+                { code: "BT101006", title: "PENDIDIKAN ISLAM TAHUN 1 (BT)" },
+                { code: "BA121001", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BA)" },
+                { code: "BT121062", title: "PENDIDIKAN JASMANI TAHUN 1 SK (BT)" }
+            ],
+            SRA: [
                 { code: "BA061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BA)" },
                 { code: "BT061001", title: "ALAM DAN MANUSIA: PEMBELAJARAN BERSEPADU TAHUN 1 SK (BT)" },
                 { code: "BT481003", title: "ASAS BACAAN AL-QURAN TAHUN 1" },
@@ -1018,6 +999,7 @@
             pesananPerdana: {},
             pesananKhas: {},
             pesananBraille: {},
+            gunaPerdana: true,
             gunaKhas: false,
             gunaBraille: false
         };
@@ -1050,23 +1032,6 @@
                 toastBox.style.transform = "translateY(-100px)";
                 toastBox.style.opacity = "0";
             }, 4000);
-        }
-
-        // Menguruskan Modal Tetapan API
-        function bukaModalTetapan() {
-            document.getElementById("modal-tetapan").classList.remove("hidden");
-        }
-
-        function tutupModalTetapan() {
-            document.getElementById("modal-tetapan").classList.add("hidden");
-        }
-
-        function simpanTetapanApi() {
-            const val = document.getElementById("input-api-url").value.trim();
-            state.backendUrl = val;
-            localStorage.setItem("spbt_backend_url", val);
-            tunjukToast("Tetapan backend berjaya disimpan!", "success");
-            tutupModalTetapan();
         }
 
         // Fungsi Navigasi Langkah
@@ -1136,7 +1101,7 @@
             document.getElementById("btn-submit-step-1").disabled = true;
             document.getElementById("btn-submit-step-1").innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> <span>Menyemak Pangkalan Data...</span>';
 
-            // Sambungan terus ke API Google Apps Script (Tiada fallback ke Local Storage)
+            // Sambungan terus ke API Google Apps Script
             const requestUrl = `${GOOGLE_SCRIPT_URL}?email=${encodeURIComponent(emailInput)}`;
             
             fetch(requestUrl)
@@ -1148,6 +1113,7 @@
                         state.pesananPerdana = response.data.pesananPerdana || {};
                         state.pesananKhas = response.data.pesananKhas || {};
                         state.pesananBraille = response.data.pesananBraille || {};
+                        state.gunaPerdana = response.data.gunaPerdana !== undefined ? response.data.gunaPerdana : (Object.keys(response.data.pesananPerdana || {}).length > 0);
                         state.gunaKhas = response.data.gunaKhas || false;
                         state.gunaBraille = response.data.gunaBraille || false;
                         
@@ -1217,8 +1183,12 @@
             binaJadualBukuDinamik();
 
             // Set default toggle states
+            document.getElementById("chk-guna-perdana").checked = state.gunaPerdana;
+            kawalPaparanPerdana(state.gunaPerdana);
+            
             document.getElementById("chk-guna-khas").checked = state.gunaKhas;
             kawalPaparanKhas(state.gunaKhas);
+            
             document.getElementById("chk-guna-braille").checked = state.gunaBraille;
             kawalPaparanBraille(state.gunaBraille);
 
@@ -1347,7 +1317,7 @@
         }
 
         function kiraJumlahKeseluruhan() {
-            const sumPerdana = dapatKiraKumpulan(state.pesananPerdana);
+            const sumPerdana = state.gunaPerdana ? dapatKiraKumpulan(state.pesananPerdana) : 0;
             const sumKhas = state.gunaKhas ? dapatKiraKumpulan(state.pesananKhas) : 0;
             const sumBraille = (state.gunaKhas && state.gunaBraille) ? dapatKiraKumpulan(state.pesananBraille) : 0;
             const grandTotal = sumPerdana + sumKhas + sumBraille;
@@ -1378,6 +1348,25 @@
                     row.classList.add("hidden");
                 }
             });
+        }
+
+        // Kawalan Paparan Aliran Perdana
+        function kawalPaparanPerdana(isAktif) {
+            state.gunaPerdana = isAktif;
+            const card = document.getElementById("card-perdana");
+            const iconContainer = document.getElementById("icon-container-perdana");
+            const boxAliranPerdana = document.getElementById("box-aliran-perdana");
+
+            if (isAktif) {
+                card.className = "bg-white p-5 rounded-xl shadow-md border-2 border-brand-500 bg-brand-50/20 transition-all duration-300";
+                iconContainer.className = "bg-brand-100 text-brand-700 p-3.5 rounded-xl transition-colors duration-300";
+                boxAliranPerdana.classList.remove("hidden");
+            } else {
+                card.className = "bg-white p-5 rounded-xl shadow-md border border-slate-200 transition-all duration-300";
+                iconContainer.className = "bg-slate-100 text-slate-400 p-3.5 rounded-xl transition-colors duration-300";
+                boxAliranPerdana.classList.add("hidden");
+            }
+            kiraJumlahKeseluruhan();
         }
 
         // Kawalan Paparan Aliran Khas & Braille
@@ -1418,6 +1407,11 @@
         function simpanDanHantarPesanan() {
             const totals = kiraJumlahKeseluruhan();
             
+            if (!state.gunaPerdana && !state.gunaKhas) {
+                tunjukToast("Sila aktifkan sekurang-kurangnya satu aliran (Perdana atau Pendidikan Khas) untuk membuat pesanan.", "error");
+                return;
+            }
+
             if (totals.grandTotal === 0) {
                 tunjukToast("Sila masukkan sekurang-kurangnya satu kuantiti buku pesanan sebelum dihantar.", "error");
                 return;
@@ -1426,9 +1420,10 @@
             const payload = {
                 email: state.email,
                 sekolahInfo: state.sekolahInfo,
-                pesananPerdana: state.pesananPerdana,
+                pesananPerdana: state.gunaPerdana ? state.pesananPerdana : {},
                 pesananKhas: state.gunaKhas ? state.pesananKhas : {},
                 pesananBraille: (state.gunaKhas && state.gunaBraille) ? state.pesananBraille : {},
+                gunaPerdana: state.gunaPerdana,
                 gunaKhas: state.gunaKhas,
                 gunaBraille: state.gunaBraille,
                 tarikhKemaskini: new Date().toISOString()
@@ -1473,9 +1468,9 @@
 
             // Sediakan Ringkasan Berangka
             const totals = kiraJumlahKeseluruhan();
-            document.getElementById("receipt-summary-perdana").textContent = totals.sumPerdana;
-            document.getElementById("receipt-summary-khas").textContent = totals.sumKhas;
-            document.getElementById("receipt-summary-braille").textContent = totals.sumBraille;
+            document.getElementById("receipt-summary-perdana").textContent = payload.gunaPerdana ? totals.sumPerdana : 0;
+            document.getElementById("receipt-summary-khas").textContent = payload.gunaKhas ? totals.sumKhas : 0;
+            document.getElementById("receipt-summary-braille").textContent = (payload.gunaKhas && payload.gunaBraille) ? totals.sumBraille : 0;
 
             // Sediakan ID Rujukan Terenkripsi / Unik Ringkas
             const uniqueId = `SPBT-Y1-${payload.sekolahInfo.kodSekolah}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1489,11 +1484,13 @@
             receiptTbody.innerHTML = "";
 
             // 1. Aliran Perdana Rows
-            const listPerdana = SENARAI_BUKU_PERDANA[payload.sekolahInfo.kategoriSekolah] || SENARAI_BUKU_PERDANA["SK"];
-            listPerdana.forEach(b => {
-                const q = payload.pesananPerdana[b.code] || 0;
-                if (q > 0) tambahBarisResit(receiptTbody, b.code, "Perdana", b.title, q);
-            });
+            if (payload.gunaPerdana) {
+                const listPerdana = SENARAI_BUKU_PERDANA[payload.sekolahInfo.kategoriSekolah] || SENARAI_BUKU_PERDANA["SK"];
+                listPerdana.forEach(b => {
+                    const q = payload.pesananPerdana[b.code] || 0;
+                    if (q > 0) tambahBarisResit(receiptTbody, b.code, "Perdana", b.title, q);
+                });
+            }
 
             // 2. Aliran Khas Rows
             if (payload.gunaKhas) {
@@ -1536,6 +1533,7 @@
             state.pesananPerdana = {};
             state.pesananKhas = {};
             state.pesananBraille = {};
+            state.gunaPerdana = true;
             state.gunaKhas = false;
             state.gunaBraille = false;
 
