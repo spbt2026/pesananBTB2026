@@ -660,7 +660,9 @@
                     </div>
                     <div class="md:text-right">
                         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pusat Maklumat Sekolah</h4>
-                        <p id="receipt-nama-sekolah" class="font-black text-brand-900 mt-1.5">-</p>
+                        <p class="font-black text-brand-900 mt-1.5">
+                            <span id="receipt-nama-sekolah">-</span> (<span id="receipt-kod-sekolah">-</span>)
+                        </p>
                         <p class="text-slate-600">Kategori: <span id="receipt-kategori-sekolah" class="font-extrabold text-brand-800">-</span></p>
                         <p id="receipt-ppd-negeri" class="text-slate-600">-</p>
                     </div>
@@ -785,7 +787,7 @@
         // =========================================================================
         // ⚠️ URL GOOGLE APPS SCRIPT ANDA DIBAWAH KINI AKTIF SEBAGAI SATU-SATUNYA PANGKALAN DATA
         // =========================================================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1_WBqTHCF-yrRLdUPNrnon2jcfVTQWjJC75gZpDQ4OV7RHHNfcO4jTN_5Yu27rrvJ/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc72XSjsIIRR4fwbd9v5cVkaa-NwzzJHTV4Efh9qbXMosLr8qbRiuLmUhPcCXvVhriew/exec"; 
         // =========================================================================
 
         // Pangkalan Data Buku Teks mengikut Kategori Sekolah
@@ -1316,23 +1318,6 @@
             return Object.values(pesananObj).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
         }
 
-        function kiraJumlahKeseluruhan() {
-            const sumPerdana = state.gunaPerdana ? dapatKiraKumpulan(state.pesananPerdana) : 0;
-            const sumKhas = state.gunaKhas ? dapatKiraKumpulan(state.pesananKhas) : 0;
-            const sumBraille = (state.gunaKhas && state.gunaBraille) ? dapatKiraKumpulan(state.pesananBraille) : 0;
-            const grandTotal = sumPerdana + sumKhas + sumBraille;
-
-            // Kemaskini Lencana di UI
-            document.getElementById("badge-total-perdana").textContent = `Jumlah: ${sumPerdana} naskhah`;
-            document.getElementById("badge-total-khas").textContent = `Jumlah Khas: ${sumKhas} naskhah`;
-            document.getElementById("badge-total-braille").textContent = `Jumlah Braille: ${sumBraille} naskhah`;
-
-            document.getElementById("display-jumlah-naskhah").innerHTML = `${grandTotal} <span class="text-xs font-semibold text-white">Naskhah</span>`;
-            document.getElementById("display-total-tampung").textContent = `${grandTotal} Naskhah`;
-
-            return { sumPerdana, sumKhas, sumBraille, grandTotal };
-        }
-
         // Tapis Carian Buku
         function tapisBuku(query) {
             const lowQuery = query.toLowerCase().trim();
@@ -1403,6 +1388,23 @@
             kiraJumlahKeseluruhan();
         }
 
+        function kiraJumlahKeseluruhan() {
+            const sumPerdana = state.gunaPerdana ? dapatKiraKumpulan(state.pesananPerdana) : 0;
+            const sumKhas = state.gunaKhas ? dapatKiraKumpulan(state.pesananKhas) : 0;
+            const sumBraille = (state.gunaKhas && state.gunaBraille) ? dapatKiraKumpulan(state.pesananBraille) : 0;
+            const grandTotal = sumPerdana + sumKhas + sumBraille;
+
+            // Kemaskini Lencana di UI
+            document.getElementById("badge-total-perdana").textContent = `Jumlah: ${sumPerdana} naskhah`;
+            document.getElementById("badge-total-khas").textContent = `Jumlah Khas: ${sumKhas} naskhah`;
+            document.getElementById("badge-total-braille").textContent = `Jumlah Braille: ${sumBraille} naskhah`;
+
+            document.getElementById("display-jumlah-naskhah").innerHTML = `${grandTotal} <span class="text-xs font-semibold text-white">Naskhah</span>`;
+            document.getElementById("display-total-tampung").textContent = `${grandTotal} Naskhah`;
+
+            return { sumPerdana, sumKhas, sumBraille, grandTotal };
+        }
+
         // Simpan Dan Hantar Pesanan (Hanya simpan terus ke Google Sheets)
         function simpanDanHantarPesanan() {
             const totals = kiraJumlahKeseluruhan();
@@ -1462,6 +1464,7 @@
             document.getElementById("receipt-email").textContent = payload.email;
             document.getElementById("receipt-no-telefon").textContent = `No. Telefon: ${payload.sekolahInfo.noTelefon}`;
             
+            document.getElementById("receipt-kod-sekolah").textContent = payload.sekolahInfo.kodSekolah;
             document.getElementById("receipt-nama-sekolah").textContent = payload.sekolahInfo.namaSekolah;
             document.getElementById("receipt-kategori-sekolah").textContent = payload.sekolahInfo.kategoriSekolah;
             document.getElementById("receipt-ppd-negeri").textContent = `${payload.sekolahInfo.ppd}, ${payload.sekolahInfo.negeri}`;
@@ -1533,7 +1536,7 @@
             state.pesananPerdana = {};
             state.pesananKhas = {};
             state.pesananBraille = {};
-            state.gunaPerdana = true;
+            state.gunaPerdana = false;
             state.gunaKhas = false;
             state.gunaBraille = false;
 
